@@ -470,7 +470,13 @@ function MusicPage() {
                       isPlaying={isPlaying}
                       isLoading={isBuffering && currentTrack?.id === s.id}
                       lovedSongs={lovedSongs}
-                      onPlay={() => handlePlayTrack(s, activeList)}
+                      onPlay={() => {
+                        if (!isSearchMode) {
+                          const idx = queue.findIndex(t => t.id === s.id);
+                          if (idx !== -1) removeFromQueue(idx);
+                        }
+                        handlePlayTrack(s, isSearchMode ? searchResults : undefined);
+                      }}
                       onLove={e => { e.stopPropagation(); toggleLove(s.id); }}
                       onAddToQueue={isSearchMode ? e => {
                         e.stopPropagation();

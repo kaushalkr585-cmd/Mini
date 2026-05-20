@@ -14,6 +14,7 @@ export interface SpotifyTrack {
 interface MusicStore {
   currentTrack: SpotifyTrack | null;
   queue: SpotifyTrack[];
+  contextQueue: SpotifyTrack[];
   isPlaying: boolean;
   progress: number;
   duration: number;
@@ -43,6 +44,7 @@ interface MusicStore {
 export const useMusicStore = create<MusicStore>((set, get) => ({
   currentTrack: null,
   queue: [],
+  contextQueue: [],
   isPlaying: false,
   progress: 0,
   duration: 0,
@@ -62,18 +64,16 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   },
 
   playTrack: (track, contextList) => {
-    const { queue, currentTrack, togglePlay } = get();
+    const { currentTrack, togglePlay } = get();
     if (currentTrack?.id === track.id) {
       togglePlay();
       return;
     }
     
-    // Use the provided context as the queue (e.g. search results or playlist)
-    let newQueue = contextList && contextList.length > 0 ? [...contextList] : [...queue];
-    if (!newQueue.find(t => t.id === track.id)) {
-      newQueue = [track, ...newQueue];
-    }
-    set({ currentTrack: track, queue: newQueue, isPlaying: true, progress: 0 });
+    // Set contextQueue to contextList so we can auto-play next without destroying manual queue
+    const newContextQueue = contextList && contextList.length > 0 ? [...contextList] : [];
+    
+    set({ currentTrack: track, contextQueue: newContextQueue, isPlaying: true, progress: 0 });
   },
 
   togglePlay: () => set((state) => {
@@ -82,17 +82,25 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   }),
 
   nextTrack: () => set((state) => {
-    if (!state.currentTrack || state.queue.length === 0) return state;
-    const idx = state.queue.findIndex(t => t.id === state.currentTrack?.id);
-    const nextIdx = (idx + 1) % state.queue.length;
-    return { currentTrack: state.queue[nextIdx], isPlaying: true, progress: 0 };
+    // If there are manually queued items, pop the first one and play it
+    if (state.queue.length > 0) {
+      const nextTrack = state.queue[0];
+      const newQueue = state.queue.slice(1);
+      return { currentTrack: nextTrack, queue: newQueue, isPlaying: true, progress: 0 };
+    }
+    
+    // Otherwise, play next from contextQueue
+    if (!state.currentTrack || state.contextQueue.length === 0) return state;
+    const idx = state.contextQueue.findIndex(t => t.id === state.currentTrack?.id);
+    const nextIdx = (idx + 1) % state.contextQueue.length;
+    return { currentTrack: state.contextQueue[nextIdx], isPlaying: true, progress: 0 };
   }),
 
   prevTrack: () => set((state) => {
-    if (!state.currentTrack || state.queue.length === 0) return state;
-    const idx = state.queue.findIndex(t => t.id === state.currentTrack?.id);
-    const prevIdx = (idx - 1 + state.queue.length) % state.queue.length;
-    return { currentTrack: state.queue[prevIdx], isPlaying: true, progress: 0 };
+    if (!state.currentTrack || state.contextQueue.length === 0) return state;
+    const idx = state.contextQueue.findIndex(t => t.id === state.currentTrack?.id);
+    const prevIdx = (idx - 1 + state.contextQueue.length) % state.contextQueue.length;
+    return { currentTrack: state.contextQueue[prevIdx], isPlaying: true, progress: 0 };
   }),
 
   setVolume: (v) => set({ volume: v }),

@@ -132,6 +132,7 @@ export function MusicPlayer() {
 
   const { history } = useRouter();
   const isMusicPage = history.location.pathname === "/music";
+  const isChatPage = history.location.pathname === "/chat";
 
   if (!currentTrack || isMusicPage) return null;
 
@@ -161,7 +162,9 @@ export function MusicPlayer() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="fixed bottom-6 left-1/2 z-40 w-[min(600px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl glass-strong p-3 shadow-cinema"
+        className={`fixed left-1/2 z-50 w-[min(600px,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl glass-strong p-3 shadow-cinema ${
+          isChatPage ? "bottom-[90px]" : "bottom-6"
+        }`}
       >
         <div className="flex items-center gap-3">
           {/* Album art with AnimatePresence cross-fade */}
