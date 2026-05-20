@@ -85,6 +85,37 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/memories/:id/react
+router.post('/:id/react', auth, async (req, res) => {
+  try {
+    const memory = await Memory.findById(req.params.id);
+    if (!memory) return res.status(404).json({ error: 'Not found' });
+
+    const { emoji } = req.body;
+    if (!emoji) return res.status(400).json({ error: 'Emoji required' });
+
+    const userIdStr = req.user._id.toString();
+    const existingIndex = memory.reactions.findIndex(r => r.userId.toString() === userIdStr);
+
+    if (existingIndex > -1) {
+      if (memory.reactions[existingIndex].emoji === emoji) {
+        // Toggle off
+        memory.reactions.splice(existingIndex, 1);
+      } else {
+        // Change emoji
+        memory.reactions[existingIndex].emoji = emoji;
+      }
+    } else {
+      // Add new
+      memory.reactions.push({ userId: req.user._id, emoji });
+    }
+
+    await memory.save();
+    req.io.emit('memory:reacted', { memoryId: memory._id, reactions: memory.reactions });
+    res.json(memory.reactions);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PATCH /api/memories/:id/like
 router.patch('/:id/like', auth, async (req, res) => {
   try {
@@ -104,10 +135,10 @@ router.patch('/:id/like', auth, async (req, res) => {
 // PATCH /api/memories/:id — edit title/tag
 router.patch('/:id', auth, async (req, res) => {
   try {
-    const { title, tag, sub, categoryId } = req.body;
+    const { title, tag, sub, categoryId, location, notes } = req.body;
     const memory = await Memory.findByIdAndUpdate(
       req.params.id,
-      { title, tag, sub, categoryId },
+      { title, tag, sub, categoryId, location, notes },
       { new: true }
     ).populate('uploadedBy', 'name role');
     req.io.emit('memory:updated', memory);

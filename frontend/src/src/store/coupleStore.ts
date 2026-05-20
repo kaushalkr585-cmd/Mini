@@ -18,6 +18,7 @@ export interface Memory {
   categoryId: string | null;
   uploadedBy: { _id: string; name: string; role: string };
   likes: string[];
+  reactions?: { userId: string; emoji: string }[];
   createdAt: string;
 }
 
@@ -69,7 +70,9 @@ interface CoupleState {
   fetchMemories: (filter?: Record<string, string>) => Promise<void>;
   uploadMemory: (formData: FormData) => Promise<void>;
   deleteMemory: (id: string) => Promise<void>;
+  editMemory: (id: string, data: any) => Promise<void>;
   likeMemory: (id: string) => Promise<void>;
+  reactToMemory: (id: string, emoji: string) => Promise<void>;
   fetchMilestones: () => Promise<void>;
   createMilestone: (formData: FormData) => Promise<void>;
   deleteMilestone: (id: string) => Promise<void>;
@@ -145,6 +148,25 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     const { data } = await api.patch(`/memories/${id}/like`);
     set((s) => ({
       memories: s.memories.map((m) => m._id === id ? { ...m, likes: data.likes } : m),
+    }));
+  },
+
+  reactToMemory: async (id, emoji) => {
+    try {
+      const { data } = await api.post(`/memories/${id}/react`, { emoji });
+      set((s) => ({
+        memories: s.memories.map((m) => m._id === id ? { ...m, reactions: data } : m),
+      }));
+    } catch (err: any) {
+      console.error("Failed to react to memory. Make sure backend is deployed!", err);
+      alert("Reaction failed! Your backend is returning a 404 error because the new '/react' endpoint hasn't been deployed to Render yet. Please push your code to GitHub to deploy it!");
+    }
+  },
+
+  editMemory: async (id, data) => {
+    const res = await api.patch(`/memories/${id}`, data);
+    set((s) => ({
+      memories: s.memories.map((m) => m._id === id ? res.data : m),
     }));
   },
 
@@ -310,6 +332,9 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     });
     socket.on('memory:updated', (memory: Memory) => {
       set((s) => ({ memories: s.memories.map((m) => m._id === memory._id ? memory : m) }));
+    });
+    socket.on('memory:reacted', ({ memoryId, reactions }: { memoryId: string; reactions: any }) => {
+      set((s) => ({ memories: s.memories.map((m) => m._id === memoryId ? { ...m, reactions } : m) }));
     });
     socket.on('category:new', (cat: Category) => {
       set((s) => {

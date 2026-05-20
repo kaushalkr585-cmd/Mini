@@ -20,6 +20,7 @@ function MemoriesPage() {
   
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isUploadMemoryOpen, setIsUploadMemoryOpen] = useState(false);
+  const [memoryToDelete, setMemoryToDelete] = useState<Memory | null>(null);
 
   useEffect(() => {
     fetchMemories();
@@ -156,14 +157,20 @@ function MemoriesPage() {
                 <div className="absolute inset-x-0 bottom-0 p-3">
                   <p className="text-[10px] text-rose">{m.sub}</p>
                   <h3 className="mt-0.5 font-display text-sm font-semibold leading-tight">{m.title}</h3>
-                  <div className="mt-2 flex translate-y-3 items-center gap-1 opacity-0 transition-all duration-400 group-hover:translate-y-0 group-hover:opacity-100">
+                  <div className="mt-2 flex flex-wrap translate-y-3 items-center gap-1 opacity-0 transition-all duration-400 group-hover:translate-y-0 group-hover:opacity-100">
                     <button className="flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground">
                       <Play className="h-2.5 w-2.5 fill-current" /> Open
                     </button>
+                    {m.reactions && m.reactions.length > 0 && (
+                      <div className="flex items-center gap-0.5 rounded-full glass px-2 py-1 text-[10px] font-medium ml-1">
+                        {Array.from(new Set(m.reactions.map(r => r.emoji))).slice(0, 2).join("")} 
+                        <span className="ml-0.5 text-white/80">{m.reactions.length}</span>
+                      </div>
+                    )}
                     <button onClick={(e) => { e.stopPropagation(); likeMemory(m._id); }} className="rounded-full glass p-1 ml-auto">
                       <Heart className={`h-2.5 w-2.5 ${m.likes && m.likes.length > 0 ? 'fill-rose text-rose' : ''}`} />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); deleteMemory(m._id); }} className="rounded-full glass p-1 hover:text-rose transition-colors">
+                    <button onClick={(e) => { e.stopPropagation(); setMemoryToDelete(m); }} className="rounded-full glass p-1 hover:text-rose transition-colors">
                       <Trash2 className="h-2.5 w-2.5" />
                     </button>
                   </div>
@@ -177,6 +184,47 @@ function MemoriesPage() {
       <AddCategoryModal isOpen={isAddCategoryOpen} onClose={() => setIsAddCategoryOpen(false)} />
       <UploadMemoryModal isOpen={isUploadMemoryOpen} onClose={() => setIsUploadMemoryOpen(false)} />
       <MemoryViewerModal memory={selectedMemory} onClose={() => setSelectedMemory(null)} onLike={likeMemory} />
+      
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {memoryToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-3xl glass-strong p-6 shadow-cinema text-center"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose/10 text-rose mb-4">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-display font-bold mb-2">Delete Memory?</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to delete "{memoryToDelete.title}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMemoryToDelete(null)}
+                  className="flex-1 rounded-xl glass-strong py-3 text-sm font-semibold hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteMemory(memoryToDelete._id);
+                    setMemoryToDelete(null);
+                    if (selectedMemory?._id === memoryToDelete._id) setSelectedMemory(null);
+                  }}
+                  className="flex-1 rounded-xl bg-rose py-3 text-sm font-semibold text-white shadow-glow hover:shadow-[0_0_30px_#f43f5e50] transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

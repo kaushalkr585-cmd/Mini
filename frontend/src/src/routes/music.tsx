@@ -159,6 +159,17 @@ function MusicPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [queueToast, setQueueToast] = useState<string | null>(null);
+  const [trendingPlaylists, setTrendingPlaylists] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (token) {
+      api.get('/spotify/featured-playlists').then(res => {
+        if (res.data && res.data.playlists && res.data.playlists.items) {
+          setTrendingPlaylists(res.data.playlists.items.slice(0, 5));
+        }
+      }).catch(console.error);
+    }
+  }, [token]);
 
   // Show brief loading state whenever the current track changes
   useEffect(() => {
@@ -237,7 +248,7 @@ function MusicPage() {
 
             {!token && (
               <a
-                href={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/spotify/login`}
+                href={`${(import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/api\/?$/, "")}/api/spotify/login`}
                 className="flex items-center gap-2 rounded-xl bg-[#1DB954] px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_#1DB95450] hover:scale-105 transition-transform"
               >
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -494,12 +505,14 @@ function MusicPage() {
                 Trending Playlists
               </h3>
               <div className="space-y-3">
-                {[
+                {(trendingPlaylists.length > 0 ? trendingPlaylists : [
                   { id: "p1", name: "Our Top Tracks", count: 24, color: "from-rose-500 to-pink-700", query: "romantic hindi songs" },
                   { id: "p2", name: "Late Night Drives", count: 12, color: "from-indigo-500 to-violet-700", query: "late night chill songs" },
                   { id: "p3", name: "Morning Kisses", count: 8, color: "from-amber-400 to-orange-600", query: "morning feel good songs" },
                   { id: "p4", name: "Rain & Coffee", count: 15, color: "from-teal-500 to-emerald-700", query: "rainy day lofi songs" },
-                ].map(pl => (
+                ]).map(pl => {
+                  const isDynamic = trendingPlaylists.length > 0;
+                  return (
                   <motion.button
                     key={pl.id}
                     whileHover={{ scale: 1.02 }}
@@ -510,7 +523,7 @@ function MusicPage() {
                       setIsSearching(true);
                       try {
                         const { data } = await api.get(
-                          `/spotify/search?q=${encodeURIComponent(pl.query)}&type=track`
+                          `/spotify/search?q=${encodeURIComponent(isDynamic ? pl.name : pl.query)}&type=track`
                         );
                         const tracks: SpotifyTrack[] = data.tracks?.items || [];
                         setSearchResults(tracks);
@@ -524,18 +537,22 @@ function MusicPage() {
                     }}
                     className="w-full flex items-center gap-4 rounded-2xl glass-strong p-4 shadow-cinema transition-all hover:border-primary/30 border border-transparent text-left disabled:opacity-50"
                   >
-                    <div className={`h-12 w-12 flex-none rounded-xl bg-gradient-to-br ${pl.color} flex items-center justify-center shadow-glow`}>
-                      <Music2 className="h-5 w-5 text-white" />
+                    <div className={`h-12 w-12 flex-none rounded-xl bg-gradient-to-br ${isDynamic ? '' : pl.color} flex items-center justify-center shadow-glow overflow-hidden bg-white/5`}>
+                      {isDynamic && pl.images && pl.images[0] ? (
+                        <img src={pl.images[0].url} className="h-full w-full object-cover" />
+                      ) : (
+                        <Music2 className="h-5 w-5 text-white" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-sm text-foreground truncate">{pl.name}</p>
-                      <p className="text-xs text-muted-foreground">{pl.count} songs</p>
+                      <p className="text-xs text-muted-foreground">{isDynamic ? (pl.tracks?.total || 0) : pl.count} songs</p>
                     </div>
                     {isSearching && searchQuery === pl.name && (
                       <Loader2 className="h-4 w-4 text-primary animate-spin ml-auto" />
                     )}
                   </motion.button>
-                ))}
+                )})}
               </div>
             </div>
 

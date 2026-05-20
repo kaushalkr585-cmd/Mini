@@ -94,6 +94,18 @@ router.get('/search', auth, async (req, res) => {
   }
 });
 
+router.get('/featured-playlists', auth, async (req, res) => {
+  if (!globalAccessToken) return res.status(401).json({ error: 'Spotify not connected' });
+  try {
+    const { data } = await axios.get(`https://api.spotify.com/v1/browse/featured-playlists?limit=5`, {
+      headers: { 'Authorization': `Bearer ${globalAccessToken}` }
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.response?.data || err.message });
+  }
+});
+
 // Playback endpoints can just be called directly from frontend using the access token, 
 // but we provide them here if needed. Since we will use Web Playback SDK, the frontend will use the token.
 

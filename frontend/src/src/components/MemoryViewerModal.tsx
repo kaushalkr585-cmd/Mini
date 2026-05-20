@@ -1,11 +1,20 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight, Heart, Play, Pause, Calendar, MapPin } from "lucide-react";
-import { Memory } from "@/store/coupleStore";
+import { X, ChevronLeft, ChevronRight, Heart, Play, Pause, Calendar, MapPin, Edit2, Trash2 } from "lucide-react";
+import { Memory, useCoupleStore } from "@/store/coupleStore";
+import { MemoryEditModal } from "./MemoryEditModal";
 
-export function MemoryViewerModal({ memory, onClose, onLike }: { memory: Memory | null; onClose: () => void; onLike: (id: string) => void }) {
+const REACTIONS = ["❤️", "😍", "😂", "😢"];
+
+export function MemoryViewerModal({ memory: initialMemory, onClose, onLike }: { memory: Memory | null; onClose: () => void; onLike: (id: string) => void }) {
+  const { reactToMemory, deleteMemory, memories } = useCoupleStore();
+  
+  // Use fresh memory from store to immediately reflect reactions/likes
+  const memory = memories.find(m => m._id === initialMemory?._id) || initialMemory;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Reset state when memory changes
   useEffect(() => {
@@ -40,21 +49,22 @@ export function MemoryViewerModal({ memory, onClose, onLike }: { memory: Memory 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [memory, onClose]);
 
-  if (!memory) return null;
-
-  const images = memory.urls && memory.urls.length > 0 ? memory.urls : [memory.url];
+  const images = memory?.urls && memory.urls.length > 0 ? memory.urls : (memory?.url ? [memory.url] : []);
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl"
-      >
-        {/* Background Blur Image */}
-        <div 
-          className="absolute inset-0 opacity-20 scale-110 blur-3xl pointer-events-none transition-all duration-1000"
-          style={{ backgroundImage: `url(${images[currentIndex]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-        />
+    <>
+      <AnimatePresence>
+        {memory && (
+          <motion.div
+            key="viewer-modal"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl"
+          >
+            {/* Background Blur Image */}
+            <div 
+              className="absolute inset-0 opacity-20 scale-110 blur-3xl pointer-events-none transition-all duration-1000"
+              style={{ backgroundImage: `url(${images[currentIndex] || ''})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            />
 
         {/* Top Bar */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-6 bg-gradient-to-b from-black/80 to-transparent">
@@ -144,6 +154,51 @@ export function MemoryViewerModal({ memory, onClose, onLike }: { memory: Memory 
                 <Heart className={`h-5 w-5 ${memory.likes && memory.likes.length > 0 ? "fill-primary text-primary" : "text-white/70"}`} />
                 <span className="text-sm font-medium">{memory.likes?.length || 0}</span>
               </button>
+            </div>
+            
+            <div className="flex items-center gap-2 pt-4">
+              {REACTIONS.map(emoji => {
+                const count = memory.reactions?.filter(r => r.emoji === emoji).length || 0;
+                return (
+                  <motion.button
+                    key={emoji}
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (memory) {
+                        reactToMemory(memory._id, emoji);
+                      }
+                    }}
+                    className="flex items-center gap-1.5 rounded-full glass px-3 py-1.5 hover:bg-white/10 transition"
+                  >
+                    <span className="text-lg leading-none">{emoji}</span>
+                    {count > 0 && <span className="text-xs font-medium text-white/80">{count}</span>}
+                  </motion.button>
+                );
+              })}
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3 pt-4">
+              <button 
+                onClick={() => setIsEditOpen(true)}
+                className="flex items-center justify-center gap-2 flex-1 rounded-xl glass-strong py-3 hover:bg-white/10 transition"
+              >
+                <Edit2 className="h-5 w-5 text-white/70" />
+                <span className="text-sm font-medium">Edit</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this memory?")) {
+                    deleteMemory(memory._id);
+                    onClose();
+                  }
+                }}
+                className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-rose/10 text-rose py-3 hover:bg-rose/20 transition"
+              >
+                <Trash2 className="h-5 w-5" />
+                <span className="text-sm font-medium">Delete</span>
+              </button>
               
               {images.length > 1 && (
                 <button 
@@ -159,6 +214,9 @@ export function MemoryViewerModal({ memory, onClose, onLike }: { memory: Memory 
 
         </div>
       </motion.div>
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+      <MemoryEditModal memory={memory} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />
+    </>
   );
 }

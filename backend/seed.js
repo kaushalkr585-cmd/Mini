@@ -17,6 +17,26 @@ async function seed() {
     const exists = await User.findOne({ email: u.email });
     if (!exists) await User.create(u);
   }
+  const defaultCategories = [
+    { name: 'Trips', emoji: '✈️', color: 'from-blue-500 to-cyan-500' },
+    { name: 'Dates', emoji: '🍷', color: 'from-rose-500 to-pink-500' },
+    { name: 'Selfies', emoji: '🤳', color: 'from-yellow-400 to-orange-500' },
+    { name: 'Videos', emoji: '🎬', color: 'from-purple-500 to-indigo-500' },
+    { name: 'Special Moments', emoji: '💖', color: 'from-red-500 to-rose-600' }
+  ];
+
+  const Category = require('./models/Category');
+  const catCount = await Category.countDocuments();
+  if (catCount === 0) {
+    const owner = await User.findOne({ email: 'owner@nishy.love' });
+    if (owner) {
+      for (const cat of defaultCategories) {
+        await Category.create({ ...cat, createdBy: owner._id });
+      }
+      console.log('✅ Seeded 5 default categories.');
+    }
+  }
+
   console.log('✅ Seeded 2 users: owner@nishy.love / partner@nishy.love (password: nishy1234)');
 }
 

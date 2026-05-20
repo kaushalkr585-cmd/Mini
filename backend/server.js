@@ -10,7 +10,8 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
-  process.env.CLIENT_URL,
+  // Support comma-separated CLIENT_URL for multiple origins (e.g. "https://prod.vercel.app,https://preview.vercel.app")
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map(u => u.trim()) : []),
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',

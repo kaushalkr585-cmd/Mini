@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { 
   Send, Phone, Video, Image as ImageIcon, Smile, 
   Lock, Check, CheckCheck, Edit2, Reply, Trash2, 
-  Copy, X, ImagePlus, Loader2, MoreVertical
+  Copy, X, ImagePlus, Loader2, MoreVertical, Search
 } from "lucide-react";
 import { useCoupleStore, Message } from "@/store/coupleStore";
 import { useAuthStore } from "@/store/authStore";
@@ -43,6 +43,10 @@ function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showOptions, setShowOptions] = useState(false);
+
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleClearChat = async () => {
     if (window.confirm("Are you sure you want to permanently delete ALL messages for both of you? This cannot be undone.")) {
@@ -164,45 +168,67 @@ function ChatPage() {
       {/* ── Fixed Sticky Header ── */}
       <div className="absolute top-0 left-0 right-0 z-50 pt-safe bg-background/60 backdrop-blur-xl border-b border-white/5">
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              {partner?.avatar ? (
-                 <img src={partner.avatar} className="h-11 w-11 rounded-full object-cover shadow-glow" />
-              ) : (
-                <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent shadow-glow flex items-center justify-center font-bold text-white text-lg">
-                  {partner?.name?.charAt(0) || '?'}
-                </div>
-              )}
-              {isPartnerOnline && (
-                <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background" />
-              )}
+          
+          {isSearching ? (
+            <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-1.5 mr-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input 
+                autoFocus
+                type="text" 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search in chat..."
+                className="flex-1 bg-transparent border-none outline-none text-sm text-foreground"
+              />
+              <button onClick={() => { setIsSearching(false); setSearchQuery(""); }} className="p-1 rounded-full hover:bg-white/10">
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
             </div>
-            <div>
-              <p className="font-semibold text-[15px]">{partner ? partner.name : 'Partner'}</p>
-              <div className="flex items-center text-xs h-4">
-                <AnimatePresence mode="wait">
-                  {typingUser ? (
-                    <motion.span 
-                      key="typing" 
-                      initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                      className="text-primary italic font-medium flex items-center gap-1"
-                    >
-                      typing<span className="animate-pulse">...</span>
-                    </motion.span>
-                  ) : (
-                    <motion.span 
-                      key="status" 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className={isPartnerOnline ? "text-emerald-500" : "text-muted-foreground/60"}
-                    >
-                      {isPartnerOnline ? "Online now" : "Offline"}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                {partner?.avatar ? (
+                   <img src={partner.avatar} className="h-11 w-11 rounded-full object-cover shadow-glow" />
+                ) : (
+                  <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent shadow-glow flex items-center justify-center font-bold text-white text-lg">
+                    {partner?.name?.charAt(0) || '?'}
+                  </div>
+                )}
+                {isPartnerOnline && (
+                  <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-[15px]">{partner ? partner.name : 'Partner'}</p>
+                <div className="flex items-center text-xs h-4">
+                  <AnimatePresence mode="wait">
+                    {typingUser ? (
+                      <motion.span 
+                        key="typing" 
+                        initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                        className="text-primary italic font-medium flex items-center gap-1"
+                      >
+                        typing<span className="animate-pulse">...</span>
+                      </motion.span>
+                    ) : (
+                      <motion.span 
+                        key="status" 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className={isPartnerOnline ? "text-emerald-500" : "text-muted-foreground/60"}
+                      >
+                        {isPartnerOnline ? "Online now" : "Offline"}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
           <div className="flex items-center gap-1 relative">
+            {!isSearching && (
+              <button onClick={() => setIsSearching(true)} className="rounded-full p-2.5 text-muted-foreground hover:bg-white/5 hover:text-foreground transition"><Search className="h-5 w-5" /></button>
+            )}
             <button className="rounded-full p-2.5 text-muted-foreground hover:bg-white/5 hover:text-foreground transition"><Phone className="h-5 w-5" /></button>
             <button className="rounded-full p-2.5 text-muted-foreground hover:bg-white/5 hover:text-foreground transition"><Video className="h-5 w-5" /></button>
             <button 
@@ -250,9 +276,9 @@ function ChatPage() {
             <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest">End-to-end encrypted · Only for us</p>
           </div>
 
-          {messages.map((msg, i) => {
+          {(searchQuery ? messages.filter(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase())) : messages).map((msg, i, arr) => {
             const me = isMe(msg.from);
-            const showAvatar = !me && (i === messages.length - 1 || messages[i + 1]?.from?._id !== msg.from?._id);
+            const showAvatar = !me && (i === arr.length - 1 || arr[i + 1]?.from?._id !== msg.from?._id);
             const isDeleted = msg.isDeleted;
             const isSelected = selectedMessage === msg._id;
             
@@ -327,7 +353,11 @@ function ChatPage() {
                         )}
                         {msg.text && (
                           <div className="px-4 py-2.5 text-[15px] leading-relaxed break-words whitespace-pre-wrap">
-                            {msg.text}
+                            {searchQuery ? (
+                              msg.text.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, index) => 
+                                part.toLowerCase() === searchQuery.toLowerCase() ? <span key={index} className="bg-yellow-500/50 text-white rounded px-0.5">{part}</span> : part
+                              )
+                            ) : msg.text}
                           </div>
                         )}
                       </>

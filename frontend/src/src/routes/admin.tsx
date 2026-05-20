@@ -21,6 +21,11 @@ function AdminPage() {
   // Upload state
   const [files, setFiles] = useState<File[]>([]);
   const [uploadCategory, setUploadCategory] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [sub, setSub] = useState("");
+  const [notes, setNotes] = useState("");
+  const [location, setLocation] = useState("");
+  const [tag, setTag] = useState("Memory");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -93,15 +98,19 @@ function AdminPage() {
     
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
-    if (uploadCategory) {
-      formData.append('categoryId', uploadCategory);
-    }
+    if (uploadCategory) formData.append('categoryId', uploadCategory);
+    if (title) formData.append('title', title);
+    if (sub) formData.append('sub', sub);
+    if (notes) formData.append('notes', notes);
+    if (location) formData.append('location', location);
+    if (tag) formData.append('tag', tag);
     
     try {
       await api.post('/memories/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setFiles([]);
+      setTitle(""); setSub(""); setNotes(""); setLocation(""); setTag("Memory"); setUploadCategory("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Upload failed", error);
@@ -146,18 +155,44 @@ function AdminPage() {
             <h2 className="mb-6 font-display text-xl font-bold">Upload Memories</h2>
             
             <div className="mb-4 space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Category (Optional)</label>
-              <select
-                value={uploadCategory}
-                onChange={(e) => setUploadCategory(e.target.value)}
-                className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground"
-                style={{ backgroundColor: "oklch(var(--glass))" }}
-              >
-                <option value="">None</option>
-                {categories.map(c => (
-                  <option key={c._id} value={c._id}>{c.emoji} {c.name}</option>
-                ))}
-              </select>
+              <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Title</label>
+              <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground" placeholder="e.g. Paris Trip" />
+            </div>
+
+            <div className="mb-4 grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Category</label>
+                <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
+                  className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground [&>option]:bg-zinc-900"
+                >
+                  <option value="">None</option>
+                  {categories.map(c => (
+                    <option key={c._id} value={c._id}>{c.emoji} {c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Tag</label>
+                <input value={tag} onChange={e => setTag(e.target.value)} className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground" placeholder="e.g. Memory" />
+              </div>
+            </div>
+
+            <div className="mb-4 grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Date (Sub)</label>
+                <input value={sub} onChange={e => setSub(e.target.value)} className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground" placeholder="e.g. May 14, 2024" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Location</label>
+                <input value={location} onChange={e => setLocation(e.target.value)} className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground" placeholder="Where was this?" />
+              </div>
+            </div>
+
+            <div className="mb-4 space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Description</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full rounded-xl glass py-3 px-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 text-foreground resize-none" placeholder="Write a note..." />
             </div>
 
             <div 
@@ -184,9 +219,22 @@ function AdminPage() {
             {files.length > 0 && (
               <div className="mb-6">
                 <p className="text-sm font-semibold mb-2">{files.length} files selected</p>
-                <ul className="text-xs text-muted-foreground max-h-32 overflow-y-auto space-y-1">
-                  {files.map((f, i) => <li key={i} className="truncate">{f.name}</li>)}
-                </ul>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hidden">
+                  {files.map((file, i) => (
+                    <div key={i} className="relative h-16 w-16 flex-none rounded-xl overflow-hidden">
+                      {file.type.startsWith('image/') ? (
+                        <img src={URL.createObjectURL(file)} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-primary/20 flex items-center justify-center">
+                          <Video className="h-6 w-6 text-primary" />
+                        </div>
+                      )}
+                      <button type="button" onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white hover:bg-rose-500 transition">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

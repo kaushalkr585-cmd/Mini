@@ -15,6 +15,10 @@ const memorySchema = new mongoose.Schema({
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  reactions: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    emoji: { type: String, required: true }
+  }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Memory', memorySchema);
