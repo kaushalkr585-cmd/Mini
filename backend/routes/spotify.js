@@ -6,9 +6,10 @@ const auth = require('../middleware/auth');
 
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const REDIRECT_URI = 'http://127.0.0.1:5000/api/spotify/callback';
-
-// We'll store the tokens globally in memory for this private couple app
+// We'll use process.env.SPOTIFY_REDIRECT_URI or fallback to localhost
+const getRedirectUri = (req) => {
+  return process.env.SPOTIFY_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/spotify/callback`;
+};// We'll store the tokens globally in memory for this private couple app
 let globalAccessToken = null;
 let globalRefreshToken = null;
 let tokenExpirationTime = null;
@@ -20,7 +21,7 @@ router.get('/login', (req, res) => {
       response_type: 'code',
       client_id: CLIENT_ID,
       scope: scope,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: getRedirectUri(req),
     }));
 });
 
@@ -31,7 +32,7 @@ router.get('/callback', async (req, res) => {
   try {
     const response = await axios.post('https://accounts.spotify.com/api/token', querystring.stringify({
       code: code,
-      redirect_uri: REDIRECT_URI,
+      redirect_uri: getRedirectUri(req),
       grant_type: 'authorization_code'
     }), {
       headers: {
