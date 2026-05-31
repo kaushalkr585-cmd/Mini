@@ -69,9 +69,9 @@
   --radius: 1rem;
   --background: oklch(0.08 0.02 350);
   --foreground: oklch(0.98 0.01 340);
-  --card: oklch(0.12 0.03 340 / 0.6);
+  --card: oklch(0.12 0.03 340 / 0.85);
   --card-foreground: oklch(0.98 0.01 340);
-  --popover: oklch(0.1 0.03 340);
+  --popover: oklch(0.1 0.03 340 / 0.95);
   --popover-foreground: oklch(0.98 0.01 340);
   --primary: oklch(0.72 0.28 350);
   --primary-foreground: oklch(0.1 0.02 340);
@@ -98,11 +98,11 @@
 }
 
 .light {
-  --background: oklch(0.99 0.005 340);
+  --background: oklch(0.98 0.01 340);
   --foreground: oklch(0.15 0.04 340);
-  --card: oklch(1 0 0 / 0.7);
+  --card: oklch(1 0 0 / 0.9);
   --card-foreground: oklch(0.15 0.04 340);
-  --popover: oklch(1 0 0);
+  --popover: oklch(1 0 0 / 0.98);
   --popover-foreground: oklch(0.15 0.04 340);
   --primary: oklch(0.65 0.22 350);
   --primary-foreground: oklch(0.99 0 0);
@@ -143,14 +143,14 @@
 @layer utilities {
   .glass {
     background: var(--gradient-card);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid var(--color-border);
   }
   .glass-strong {
-    background: color-mix(in oklab, var(--card) 80%, transparent);
-    backdrop-filter: blur(32px) saturate(200%);
-    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    background: color-mix(in oklab, var(--card) 90%, transparent);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
     border: 1px solid var(--color-border);
   }
   .text-gradient {

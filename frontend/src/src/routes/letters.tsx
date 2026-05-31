@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Heart, Plus, Mail, Lock, Feather, ChevronRight, X } from "lucide-react";
+import { Heart, Plus, Mail, Lock, Feather, ChevronRight, X, Edit2, Trash2, MessageCircleHeart, Reply } from "lucide-react";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { useCoupleStore, Letter } from "@/store/coupleStore";
 
@@ -9,100 +9,17 @@ export const Route = createFileRoute("/letters")({
   component: LettersPage,
 });
 
-function LetterModal({ letter, onClose }: { letter: Letter; onClose: () => void }) {
-  const { reactToLetter, partner } = useCoupleStore();
-  const [isReacting, setIsReacting] = useState(false);
-
-  const handleReact = async () => {
-    setIsReacting(true);
-    await reactToLetter(letter._id, "❤️");
-    setIsReacting(false);
-  };
-
-  const myReaction = letter.reactions?.find(r => r.user === useCoupleStore.getState().partner?._id || r.emoji === "❤️");
-  const partnerReaction = letter.reactions?.find(r => r.user === partner?._id);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-xl px-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.85, y: 40, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.85, y: 40, opacity: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-2xl rounded-3xl glass-strong p-8 shadow-cinema"
-        style={{ background: "linear-gradient(135deg, oklch(0.12 0.04 340 / 0.95), oklch(0.08 0.02 350 / 0.98))" }}
-      >
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full glass p-2 text-muted-foreground hover:text-foreground transition"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="mb-6 flex items-center gap-3">
-          <span className="text-3xl">💌</span>
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-rose">
-              {new Date(letter.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}
-            </p>
-            <h2 className="font-display text-2xl font-bold">{letter.title}</h2>
-          </div>
-        </div>
-
-        <div className="relative rounded-2xl p-6 max-h-[50vh] overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent" style={{ background: "oklch(0.11 0.03 340 / 0.6)" }}>
-          <Feather className="absolute right-4 top-4 h-4 w-4 text-primary/30" />
-          {letter.content.split("\n").map((para, i) =>
-            para ? (
-              <p key={i} className="mb-3 text-sm leading-relaxed text-foreground/90 font-[350]">{para}</p>
-            ) : (
-              <div key={i} className="mb-3" />
-            )
-          )}
-        </div>
-
-        <div className="mt-6 flex items-center justify-between">
-          <div className="flex gap-1 items-center">
-            {letter.reactions?.length > 0 && (
-              <div className="flex -space-x-2 mr-2">
-                {letter.reactions.map((r, i) => (
-                  <div key={i} className="flex h-6 w-6 items-center justify-center rounded-full bg-background ring-2 ring-primary/20 text-[10px]">
-                    {r.emoji}
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Sent by {letter.author?.name || 'You'}</p>
-          </div>
-          <button 
-            onClick={handleReact}
-            disabled={isReacting}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-              myReaction ? "bg-primary/20 text-primary" : "bg-primary text-primary-foreground shadow-glow"
-            }`}
-          >
-            <Heart className={`h-3.5 w-3.5 ${myReaction ? "fill-current" : "fill-transparent"}`} /> 
-            {myReaction ? "Loved" : "Keep Forever"}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
+import { LetterDetailView } from "@/components/LetterDetailView";
 
 function LettersPage() {
-  const { letters, fetchLetters, createLetter, loading } = useCoupleStore();
+  const { letters, fetchLetters, createLetter, updateLetter, deleteLetter, loading } = useCoupleStore();
   const [selected, setSelected] = useState<Letter | null>(null);
   const [composing, setComposing] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isDraft, setIsDraft] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [letterToDelete, setLetterToDelete] = useState<Letter | null>(null);
 
   useEffect(() => {
     fetchLetters();
@@ -110,11 +27,26 @@ function LettersPage() {
 
   const handleSend = async () => {
     if (!title || !content) return;
-    await createLetter({ title, content, isDraft });
+    if (editingId) {
+      await updateLetter(editingId, { title, content, isDraft });
+    } else {
+      await createLetter({ title, content, isDraft });
+    }
     setTitle("");
     setContent("");
     setIsDraft(false);
+    setEditingId(null);
     setComposing(false);
+  };
+
+  const handleEdit = (letter: Letter, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTitle(letter.title);
+    setContent(letter.content);
+    setIsDraft(letter.isDraft);
+    setEditingId(letter._id);
+    setComposing(true);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   };
 
   return (
@@ -162,30 +94,65 @@ function LettersPage() {
                 transition={{ duration: 0.6, delay: i * 0.08 }}
                 whileHover={{ x: 8 }}
                 onClick={() => !letter.isDraft && setSelected(letter)}
-                className={`group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 rounded-2xl glass-strong p-6 shadow-cinema transition-all duration-300 hover:border-primary/30 ${
+                className={`group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 rounded-3xl glass-strong p-6 shadow-cinema transition-all duration-300 hover:border-primary/40 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] ${
                   letter.isDraft ? "opacity-70 cursor-default" : "cursor-pointer"
                 }`}
               >
-                <div className="flex h-14 w-14 flex-none items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/10 text-3xl">
+                <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10 text-3xl shadow-glow">
                   💌
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3">
-                    <p className="text-xs uppercase tracking-widest text-rose">
-                      {new Date(letter.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}
-                    </p>
-                    {letter.isDraft && (
-                      <span className="flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                        <Lock className="h-2.5 w-2.5" /> Draft
-                      </span>
-                    )}
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-rose">
+                        {new Date(letter.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}
+                      </p>
+                      {letter.isDraft && (
+                        <span className="flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                          <Lock className="h-2.5 w-2.5" /> Draft
+                        </span>
+                      )}
+                    </div>
+                    {/* Hover Actions */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => handleEdit(letter, e)} 
+                        className="rounded-full p-2 hover:bg-primary/10 hover:text-primary transition"
+                        aria-label="Edit letter"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setLetterToDelete(letter); }} 
+                        className="rounded-full p-2 hover:bg-rose/10 hover:text-rose transition"
+                        aria-label="Delete letter"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="mt-1 font-display text-xl font-semibold">{letter.title}</h3>
-                  <p className="mt-1 truncate text-sm text-muted-foreground">{letter.content.substring(0, 100)}...</p>
+                  <h3 className="font-display text-2xl font-bold mb-1">{letter.title}</h3>
+                  <p className="text-xs font-medium text-muted-foreground mb-3">By {letter.author?.name || 'Unknown'}</p>
+                  <p className="truncate text-sm text-foreground/80 leading-relaxed">{letter.content.substring(0, 120)}...</p>
+                  
+                  {/* Stats Row */}
+                  {!letter.isDraft && (
+                    <div className="mt-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Heart className="h-3.5 w-3.5 text-rose fill-rose/20" />
+                        <span>{letter.reactions?.length || 0} Reactions</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MessageCircleHeart className="h-3.5 w-3.5 text-primary" />
+                        <span>{letter.commentCount || 0} Comments</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Reply className="h-3.5 w-3.5 text-accent" />
+                        <span>{letter.replyCount || 0} Replies</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {!letter.isDraft && (
-                  <ChevronRight className="h-5 w-5 hidden sm:block flex-none text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-                )}
               </motion.div>
             ))}
           </div>
@@ -203,9 +170,9 @@ function LettersPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Feather className="h-5 w-5 text-primary" />
-                    <h3 className="font-display text-xl font-semibold">Compose a Letter</h3>
+                    <h3 className="font-display text-xl font-semibold">{editingId ? "Edit Letter" : "Compose a Letter"}</h3>
                   </div>
-                  <button onClick={() => setComposing(false)} className="rounded-full glass p-2 hover:bg-primary/10 transition">
+                  <button onClick={() => { setComposing(false); setEditingId(null); setTitle(""); setContent(""); setIsDraft(false); }} className="rounded-full glass p-2 hover:bg-primary/10 transition">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -228,7 +195,7 @@ function LettersPage() {
                     Save as Draft (Private)
                   </label>
                   <div className="flex justify-end gap-3 w-full sm:w-auto">
-                    <button onClick={() => setComposing(false)} className="rounded-xl glass px-5 py-2.5 text-sm font-medium hover:bg-primary/10 transition">
+                    <button onClick={() => { setComposing(false); setEditingId(null); setTitle(""); setContent(""); setIsDraft(false); }} className="rounded-xl glass px-5 py-2.5 text-sm font-medium hover:bg-primary/10 transition">
                       Discard
                     </button>
                     <button 
@@ -236,7 +203,7 @@ function LettersPage() {
                       disabled={loading || !title || !content}
                       className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-50"
                     >
-                      <Heart className="h-3.5 w-3.5 fill-current" /> {isDraft ? "Save Draft" : "Seal & Send"}
+                      <Heart className="h-3.5 w-3.5 fill-current" /> {loading ? "Saving..." : (editingId ? "Update Letter" : (isDraft ? "Save Draft" : "Seal & Send"))}
                     </button>
                   </div>
                 </div>
@@ -249,7 +216,47 @@ function LettersPage() {
 
       {/* Letter Modal */}
       <AnimatePresence>
-        {selected && <LetterModal letter={selected} onClose={() => setSelected(null)} />}
+        {selected && <LetterDetailView letter={selected} onClose={() => setSelected(null)} />}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {letterToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-3xl glass-strong p-6 shadow-cinema text-center"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose/10 text-rose mb-4">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-display font-bold mb-2">Delete Letter?</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to delete "{letterToDelete.title}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setLetterToDelete(null)}
+                  className="flex-1 rounded-xl glass-strong py-3 text-sm font-semibold hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await deleteLetter(letterToDelete._id);
+                    setLetterToDelete(null);
+                  }}
+                  className="flex-1 rounded-xl bg-rose py-3 text-sm font-semibold text-white shadow-glow hover:shadow-[0_0_30px_#f43f5e50] transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   );

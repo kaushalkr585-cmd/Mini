@@ -1,22 +1,55 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Calendar, MapPin, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useCoupleStore } from "@/store/coupleStore";
 
+export interface Milestone {
+  _id: string;
+  title: string;
+  description?: string;
+  date: string;
+  location?: string;
+  images?: { url: string; publicId: string }[];
+}
+
 interface UploadMilestoneModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: Milestone | null;
 }
 
-export function UploadMilestoneModal({ isOpen, onClose }: UploadMilestoneModalProps) {
+export function UploadMilestoneModal({ isOpen, onClose, initialData }: UploadMilestoneModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const { createMilestone, loading } = useCoupleStore();
+  const { createMilestone, editMilestone, loading } = useCoupleStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setTitle(initialData.title || "");
+      setDescription(initialData.description || "");
+      const dateObj = new Date(initialData.date);
+      setDate(!isNaN(dateObj.getTime()) ? dateObj.toISOString().split("T")[0] : "");
+      setLocation(initialData.location || "");
+      if (initialData.images) {
+        setPreviews(initialData.images.map(img => img.url));
+      } else {
+        setPreviews([]);
+      }
+      setFiles([]);
+    } else if (!isOpen) {
+      setTitle("");
+      setDescription("");
+      setDate("");
+      setLocation("");
+      setFiles([]);
+      setPreviews([]);
+    }
+  }, [initialData, isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -42,15 +75,13 @@ export function UploadMilestoneModal({ isOpen, onClose }: UploadMilestoneModalPr
       formData.append("images", file);
     });
 
-    await createMilestone(formData);
+    if (initialData) {
+      await editMilestone(initialData._id, formData);
+    } else {
+      await createMilestone(formData);
+    }
     
-    // Reset and close
-    setTitle("");
-    setDescription("");
-    setDate("");
-    setLocation("");
-    setFiles([]);
-    setPreviews([]);
+    // Reset and close (handled by useEffect on close)
     onClose();
   };
 
@@ -75,7 +106,7 @@ export function UploadMilestoneModal({ isOpen, onClose }: UploadMilestoneModalPr
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-2xl font-bold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                Add Milestone
+                {initialData ? "Edit Milestone" : "Add Milestone"}
               </h2>
               <button onClick={onClose} className="rounded-full p-2 hover:bg-white/10 transition">
                 <X className="h-5 w-5" />
@@ -167,7 +198,7 @@ export function UploadMilestoneModal({ isOpen, onClose }: UploadMilestoneModalPr
                 disabled={loading || !title || !date}
                 className="mt-6 w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
               >
-                {loading ? "Adding..." : "Add to Timeline"}
+                {loading ? (initialData ? "Updating..." : "Adding...") : (initialData ? "Update Timeline" : "Add to Timeline")}
               </button>
             </form>
           </motion.div>

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { Sparkles, Heart, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Heart, Plus, Edit2, Trash2 } from "lucide-react";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { useCoupleStore } from "@/store/coupleStore";
 import { useEffect, useState } from "react";
@@ -11,8 +11,10 @@ export const Route = createFileRoute("/timeline")({
 });
 
 function TimelinePage() {
-  const { milestones, fetchMilestones } = useCoupleStore();
+  const { milestones, fetchMilestones, deleteMilestone } = useCoupleStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<any>(null);
+  const [milestoneToDelete, setMilestoneToDelete] = useState<any>(null);
 
   useEffect(() => {
     fetchMilestones();
@@ -58,7 +60,7 @@ function TimelinePage() {
           </p>
           
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { setEditingMilestone(null); setIsModalOpen(true); }}
             className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow hover:scale-105 transition-transform"
           >
             <Plus className="h-4 w-4" /> Add Milestone
@@ -96,7 +98,7 @@ function TimelinePage() {
               {/* Card */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className={`w-[calc(50%-3.5rem)] rounded-2xl glass-strong p-6 shadow-cinema bg-gradient-to-br ${getColor(i)}`}
+                className={`group w-[calc(50%-3.5rem)] rounded-2xl glass-strong p-6 shadow-cinema bg-gradient-to-br ${getColor(i)}`}
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -115,10 +117,28 @@ function TimelinePage() {
                   </div>
                 )}
                 
-                <div className="mt-4 flex items-center gap-1">
-                  <Heart className="h-3 w-3 fill-primary text-primary" />
-                  <Heart className="h-2.5 w-2.5 fill-primary/60 text-primary/60" />
-                  <Heart className="h-2 w-2 fill-primary/30 text-primary/30" />
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 fill-primary text-primary" />
+                    <Heart className="h-2.5 w-2.5 fill-primary/60 text-primary/60" />
+                    <Heart className="h-2 w-2 fill-primary/30 text-primary/30" />
+                  </div>
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => { setEditingMilestone(m); setIsModalOpen(true); }} 
+                      className="rounded-full p-2 glass hover:text-primary transition"
+                      aria-label="Edit milestone"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => setMilestoneToDelete(m)} 
+                      className="rounded-full p-2 glass hover:text-destructive transition"
+                      aria-label="Delete milestone"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -150,7 +170,51 @@ function TimelinePage() {
         </div>
       </div>
       <MusicPlayer />
-      <UploadMilestoneModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <UploadMilestoneModal 
+        isOpen={isModalOpen} 
+        onClose={() => { setIsModalOpen(false); setEditingMilestone(null); }} 
+        initialData={editingMilestone}
+      />
+      
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {milestoneToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-3xl glass-strong p-6 shadow-cinema text-center"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose/10 text-rose mb-4">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-display font-bold mb-2">Delete Milestone?</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to delete "{milestoneToDelete.title}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMilestoneToDelete(null)}
+                  className="flex-1 rounded-xl glass-strong py-3 text-sm font-semibold hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteMilestone(milestoneToDelete._id);
+                    setMilestoneToDelete(null);
+                  }}
+                  className="flex-1 rounded-xl bg-rose py-3 text-sm font-semibold text-white shadow-glow hover:shadow-[0_0_30px_#f43f5e50] transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Footer } from "@/components/Footer";
 import { useCoupleStore, Memory } from "@/store/coupleStore";
 import { MemoryViewerModal } from "@/components/MemoryViewerModal";
 import { UploadMemoryModal } from "@/components/UploadMemoryModal";
+import { ReliveMemoriesSlideshow } from "@/components/ReliveMemoriesSlideshow";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -19,6 +20,7 @@ function Index() {
   const { memories, categories, fetchMemories, fetchCategories, likeMemory } = useCoupleStore();
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [isUploadMemoryOpen, setIsUploadMemoryOpen] = useState(false);
+  const [isSlideshowOpen, setIsSlideshowOpen] = useState(false);
 
   useEffect(() => {
     fetchMemories();
@@ -55,9 +57,9 @@ function Index() {
 
   const handleReliveLatest = () => {
     if (memories.length > 0) {
-      setSelectedMemory(memories[0]);
+      setIsSlideshowOpen(true);
     } else {
-      setIsUploadMemoryOpen(true);
+      setIsSlideshowOpen(true); // Will show the empty state handle in slideshow
     }
   };
 
@@ -90,6 +92,9 @@ function Index() {
       </main>
       <MemoryViewerModal memory={selectedMemory} onClose={() => setSelectedMemory(null)} onLike={likeMemory} />
       <UploadMemoryModal isOpen={isUploadMemoryOpen} onClose={() => setIsUploadMemoryOpen(false)} />
+      {isSlideshowOpen && (
+        <ReliveMemoriesSlideshow memories={memories} onClose={() => setIsSlideshowOpen(false)} />
+      )}
     </div>
   );
 }

@@ -1,6 +1,38 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import toast from 'react-hot-toast';
+
+export interface Milestone {
+  _id: string;
+  title: string;
+  description?: string;
+  date: string;
+  location?: string;
+  images?: { url: string; publicId: string }[];
+}
+
+export interface Letter {
+  _id: string;
+  title: string;
+  content: string;
+  author?: any;
+  isDraft: boolean;
+  reactions: { user: string; emoji: string }[];
+  createdAt: string;
+  commentCount?: number;
+  replyCount?: number;
+}
+
+export interface LetterComment {
+  _id: string;
+  letterId: string;
+  author: any;
+  text: string;
+  parentId: string | null;
+  reactions: { user: string; emoji: string }[];
+  createdAt: string;
+}
 
 export interface Memory {
   _id: string;
@@ -59,6 +91,7 @@ interface CoupleState {
   memories: Memory[];
   milestones: Milestone[];
   letters: Letter[];
+  letterComments: Record<string, LetterComment[]>;
   messages: Message[];
   activity: Activity[];
   onlineUsers: { userId: string; name: string }[];
@@ -75,12 +108,18 @@ interface CoupleState {
   reactToMemory: (id: string, emoji: string) => Promise<void>;
   fetchMilestones: () => Promise<void>;
   createMilestone: (formData: FormData) => Promise<void>;
+  editMilestone: (id: string, formData: FormData) => Promise<void>;
   deleteMilestone: (id: string) => Promise<void>;
   fetchLetters: () => Promise<void>;
   createLetter: (data: any) => Promise<void>;
   updateLetter: (id: string, data: any) => Promise<void>;
   deleteLetter: (id: string) => Promise<void>;
   reactToLetter: (id: string, emoji: string) => Promise<void>;
+  fetchLetterComments: (letterId: string) => Promise<void>;
+  addLetterComment: (letterId: string, text: string, parentId?: string) => Promise<void>;
+  editLetterComment: (commentId: string, text: string) => Promise<void>;
+  deleteLetterComment: (commentId: string) => Promise<void>;
+  reactToLetterComment: (commentId: string, emoji: string) => Promise<void>;
   fetchMessages: () => Promise<void>;
   sendMessage: (formData: FormData | Record<string, any>) => Promise<void>;
   editMessage: (id: string, text: string) => Promise<void>;
@@ -99,6 +138,7 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
   memories: [],
   milestones: [],
   letters: [],
+  letterComments: {},
   messages: [],
   activity: [],
   onlineUsers: [],
@@ -195,8 +235,26 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       set(s => ({ milestones: [data, ...s.milestones] }));
+      toast.success('Milestone created successfully!');
     } catch (err) {
       console.error(err);
+      toast.error('Failed to create milestone');
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  editMilestone: async (id, formData) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.patch(`/timeline/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      set(s => ({ milestones: s.milestones.map(m => m._id === id ? data : m) }));
+      toast.success('Milestone updated successfully!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update milestone');
     } finally {
       set({ loading: false });
     }
@@ -206,8 +264,10 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     try {
       await api.delete(`/timeline/${id}`);
       set(s => ({ milestones: s.milestones.filter(m => m._id !== id) }));
+      toast.success('Milestone deleted');
     } catch (err) {
       console.error(err);
+      toast.error('Failed to delete milestone');
     }
   },
 
@@ -221,20 +281,30 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
   },
 
   createLetter: async (letterData) => {
+    set({ loading: true });
     try {
       const { data } = await api.post('/letters', letterData);
       set(s => ({ letters: [data, ...s.letters] }));
+      toast.success('Letter saved!');
     } catch (err) {
       console.error(err);
+      toast.error('Failed to save letter');
+    } finally {
+      set({ loading: false });
     }
   },
 
   updateLetter: async (id, letterData) => {
+    set({ loading: true });
     try {
       const { data } = await api.patch(`/letters/${id}`, letterData);
       set(s => ({ letters: s.letters.map(l => l._id === id ? data : l) }));
+      toast.success('Letter updated!');
     } catch (err) {
       console.error(err);
+      toast.error('Failed to update letter');
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -242,8 +312,10 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     try {
       await api.delete(`/letters/${id}`);
       set(s => ({ letters: s.letters.filter(l => l._id !== id) }));
+      toast.success('Letter deleted');
     } catch (err) {
       console.error(err);
+      toast.error('Failed to delete letter');
     }
   },
 
@@ -251,6 +323,55 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     try {
       const { data } = await api.post(`/letters/${id}/react`, { emoji });
       set(s => ({ letters: s.letters.map(l => l._id === id ? data : l) }));
+    } catch (err) {
+      console.error(err);
+      toast.error("Reaction failed! Your backend is returning a 404 error because the new '/react' endpoint hasn't been deployed to Render yet. Please push your code to GitHub to deploy it!");
+    }
+  },
+
+  fetchLetterComments: async (letterId) => {
+    try {
+      const { data } = await api.get(`/letters/${letterId}/comments`);
+      set(s => ({ letterComments: { ...s.letterComments, [letterId]: data } }));
+    } catch (err) {
+      console.error(err);
+    }
+  },
+
+  addLetterComment: async (letterId, text, parentId) => {
+    try {
+      if (parentId) {
+        await api.post(`/letters/comments/${parentId}/reply`, { text });
+      } else {
+        await api.post(`/letters/${letterId}/comments`, { text });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to post comment');
+    }
+  },
+
+  editLetterComment: async (commentId, text) => {
+    try {
+      await api.patch(`/letters/comments/${commentId}`, { text });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to edit comment');
+    }
+  },
+
+  deleteLetterComment: async (commentId) => {
+    try {
+      await api.delete(`/letters/comments/${commentId}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete comment');
+    }
+  },
+
+  reactToLetterComment: async (commentId, emoji) => {
+    try {
+      await api.post(`/letters/comments/${commentId}/react`, { emoji });
     } catch (err) {
       console.error(err);
     }
@@ -379,6 +500,71 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
       set((s) => ({
         letters: s.letters.map(l => l._id === letterId ? { ...l, reactions } : l)
       }));
+    });
+
+    socket.on('letter_commented', (comment: LetterComment) => {
+      const { partner } = get();
+      if (comment.author._id === partner?._id) {
+        toast(`${partner?.name} commented on a letter 💌`, { icon: '💬' });
+      }
+      set((s) => {
+        const existing = s.letterComments[comment.letterId] || [];
+        if (existing.some(c => c._id === comment._id)) return s;
+        return {
+          letterComments: { ...s.letterComments, [comment.letterId]: [...existing, comment] },
+          letters: s.letters.map(l => l._id === comment.letterId ? { ...l, commentCount: (l.commentCount || 0) + 1 } : l)
+        };
+      });
+    });
+
+    socket.on('letter_replied', (reply: LetterComment) => {
+      const { partner } = get();
+      if (reply.author._id === partner?._id) {
+        toast(`${partner?.name} replied to a comment 💌`, { icon: '↩' });
+      }
+      set((s) => {
+        const existing = s.letterComments[reply.letterId] || [];
+        if (existing.some(c => c._id === reply._id)) return s;
+        return {
+          letterComments: { ...s.letterComments, [reply.letterId]: [...existing, reply] },
+          letters: s.letters.map(l => l._id === reply.letterId ? { ...l, replyCount: (l.replyCount || 0) + 1 } : l)
+        };
+      });
+    });
+
+    socket.on('comment_updated', (comment: LetterComment) => {
+      set((s) => {
+        const existing = s.letterComments[comment.letterId] || [];
+        return {
+          letterComments: {
+            ...s.letterComments,
+            [comment.letterId]: existing.map(c => c._id === comment._id ? comment : c)
+          }
+        };
+      });
+    });
+
+    socket.on('comment_deleted', ({ commentId, letterId }: { commentId: string, letterId: string }) => {
+      set((s) => {
+        const existing = s.letterComments[letterId] || [];
+        // We might also need to delete child replies locally or refetch
+        // For simplicity, refetching comments for that letter is safer
+        get().fetchLetterComments(letterId);
+        get().fetchLetters(); // Update counts
+        return s;
+      });
+    });
+
+    socket.on('comment_reacted', ({ commentId, reactions, letterId }: { commentId: string, reactions: any, letterId: string }) => {
+      set((s) => {
+        const existing = s.letterComments[letterId] || [];
+        return {
+          letterComments: {
+            ...s.letterComments,
+            [letterId]: existing.map(c => c._id === commentId ? { ...c, reactions } : c)
+          }
+        };
+      });
     });
 
     socket.on('message:new', (msg: Message) => {

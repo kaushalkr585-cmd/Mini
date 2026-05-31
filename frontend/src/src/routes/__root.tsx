@@ -11,6 +11,7 @@ import { CursorGlow } from "@/components/CursorGlow";
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useCoupleStore } from "@/store/coupleStore";
+import { Toaster } from "react-hot-toast";
 
 function NotFoundComponent() {
   return (
@@ -74,6 +75,7 @@ function RootComponent() {
         <Navbar />
         <Outlet />
         <MusicPlayer />
+        <Toaster position="bottom-center" toastOptions={{ className: 'glass-strong text-foreground border border-primary/20', duration: 4000 }} />
       </ThemeProvider>
     </QueryClientProvider>
   );

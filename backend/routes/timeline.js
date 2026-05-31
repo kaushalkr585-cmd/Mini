@@ -58,6 +58,50 @@ router.post('/', auth, upload.array('images', 10), async (req, res) => {
   }
 });
 
+// PATCH /api/timeline/:id
+router.patch('/:id', auth, upload.array('images', 10), async (req, res) => {
+  try {
+    const { title, description, date, location } = req.body;
+    let milestone = await Milestone.findById(req.params.id);
+    
+    if (!milestone) return res.status(404).json({ error: 'Not found' });
+
+    milestone.title = title || milestone.title;
+    milestone.description = description !== undefined ? description : milestone.description;
+    milestone.date = date || milestone.date;
+    milestone.location = location !== undefined ? location : milestone.location;
+
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map(file => ({
+        url: file.path,
+        publicId: file.filename
+      }));
+      // Keep existing images or replace entirely? Typically we replace or append. 
+      // Assuming replacement for simplicity if new files are uploaded.
+      
+      // Optionally delete old images from cloudinary:
+      if (milestone.images && milestone.images.length > 0) {
+        for (const img of milestone.images) {
+          if (img.publicId) await cloudinary.uploader.destroy(img.publicId);
+        }
+      }
+      milestone.images = newImages;
+    }
+
+    await milestone.save();
+
+    const populated = await Milestone.findById(milestone._id).populate('createdBy', 'name avatar');
+    
+    if (req.io) {
+      req.io.emit('timeline_updated', populated);
+    }
+
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/timeline/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
