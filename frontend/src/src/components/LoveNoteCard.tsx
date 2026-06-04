@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit2, Sparkles, X, Image as ImageIcon, Trash2, AlignLeft, AlignCenter, AlignRight, Upload } from "lucide-react";
 import { useCoupleStore } from "@/store/coupleStore";
@@ -159,7 +160,7 @@ function LoveNoteEditor({ onClose }: { onClose: () => void }) {
     }
   };
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
@@ -325,6 +326,7 @@ function LoveNoteEditor({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }

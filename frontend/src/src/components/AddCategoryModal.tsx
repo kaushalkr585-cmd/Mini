@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useCoupleStore } from "@/store/coupleStore";
@@ -34,7 +35,7 @@ export function AddCategoryModal({ isOpen, onClose }: { isOpen: boolean; onClose
     "from-teal-500/20 to-emerald-700/10",
   ];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -81,6 +82,7 @@ export function AddCategoryModal({ isOpen, onClose }: { isOpen: boolean; onClose
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

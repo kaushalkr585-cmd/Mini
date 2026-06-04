@@ -22,13 +22,13 @@ export function getOptimizedVideoUrl(originalUrl: string, quality: '360p' | '720
   if (!originalUrl) return '';
   if (!originalUrl.includes('cloudinary.com')) return originalUrl;
 
-  let transform = 'q_auto';
+  let transform = 'q_auto,f_auto,vc_auto';
   if (quality === '360p') {
-    transform = 'c_limit,w_640,h_360,q_auto';
+    transform = 'c_limit,w_640,h_360,q_auto,f_auto,vc_auto';
   } else if (quality === '720p') {
-    transform = 'c_limit,w_1280,h_720,q_auto';
+    transform = 'c_limit,w_1280,h_720,q_auto,f_auto,vc_auto';
   } else if (quality === '1080p') {
-    transform = 'c_limit,w_1920,h_1080,q_auto';
+    transform = 'c_limit,w_1920,h_1080,q_auto,f_auto,vc_auto';
   } else {
     // Auto resolution based on client network & screen size
     const conn = (navigator as any).connection;
@@ -40,13 +40,13 @@ export function getOptimizedVideoUrl(originalUrl: string, quality: '360p' | '720
     const isTablet = width >= 768 && width < 1024;
     
     if (isSlow) {
-      transform = 'c_limit,w_640,h_360,q_auto';
+      transform = 'c_limit,w_640,h_360,q_auto,f_auto,vc_auto';
     } else if (isMobile) {
-      transform = 'c_limit,w_640,h_360,q_auto';
+      transform = 'c_limit,w_640,h_360,q_auto,f_auto,vc_auto';
     } else if (isTablet) {
-      transform = 'c_limit,w_1280,h_720,q_auto';
+      transform = 'c_limit,w_1280,h_720,q_auto,f_auto,vc_auto';
     } else {
-      transform = 'c_limit,w_1920,h_1080,q_auto';
+      transform = 'c_limit,w_1920,h_1080,q_auto,f_auto,vc_auto';
     }
   }
 
@@ -207,7 +207,9 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const videoSrc = getOptimizedVideoUrl(src, selectedQuality);
+  const videoSrc = useMemo(() => {
+    return getOptimizedVideoUrl(src, selectedQuality);
+  }, [src, selectedQuality]);
 
   return (
     <div
