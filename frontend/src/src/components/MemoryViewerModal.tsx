@@ -89,7 +89,7 @@ export function MemoryViewerModal({ memory: initialMemory, onClose, onLike }: { 
               <CustomVideoPlayer
                 src={memory.url}
                 thumbnail={memory.thumbnail}
-                className="w-full h-full max-h-[70vh]"
+                className="max-h-[70vh] max-w-full"
               />
             ) : (
               <AnimatePresence mode="wait">

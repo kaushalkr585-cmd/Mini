@@ -264,18 +264,18 @@ function FullscreenViewer({
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 z-20 rounded-full glass-strong p-3 text-white/70 hover:text-white hover:scale-110 transition"
+          className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 rounded-full glass-strong p-2.5 sm:p-3 text-white/70 hover:text-white hover:scale-110 transition"
         >
-          <X className="h-6 w-6" />
+          <X className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
 
         {/* Counter */}
-        <div className="absolute top-6 left-6 z-20 rounded-full glass px-4 py-1.5 text-sm text-white/70">
+        <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20 rounded-full glass px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm text-white/70">
           {idx + 1} / {memories.length}
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex h-full w-full items-center justify-center px-20 py-16">
+        <div className="relative z-10 flex h-full w-full items-center justify-center px-4 sm:px-20 py-12 sm:py-16">
           <AnimatePresence mode="wait">
             <motion.div
               key={idx}
@@ -289,7 +289,7 @@ function FullscreenViewer({
                 <CustomVideoPlayer
                   src={current.url}
                   thumbnail={current.thumbnail}
-                  className="max-h-[80vh] w-full max-w-5xl"
+                  className="max-h-[80vh] max-w-5xl"
                   autoPlay
                 />
               ) : (
@@ -308,15 +308,15 @@ function FullscreenViewer({
           <>
             <button
               onClick={prev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 rounded-full glass-strong p-3 text-white/70 hover:text-white hover:scale-110 transition"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 rounded-full glass-strong p-2 sm:p-3 text-white/70 hover:text-white hover:scale-110 transition"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
             <button
               onClick={next}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 rounded-full glass-strong p-3 text-white/70 hover:text-white hover:scale-110 transition"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 rounded-full glass-strong p-2 sm:p-3 text-white/70 hover:text-white hover:scale-110 transition"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </>
         )}

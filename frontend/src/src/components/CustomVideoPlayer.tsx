@@ -34,6 +34,18 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [containerWidth, setContainerWidth] = useState(500);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const speeds = [0.5, 1, 1.5, 2];
 
@@ -116,7 +128,7 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
         ref={videoRef}
         src={src}
         poster={thumbnail}
-        className="w-full h-full object-contain"
+        className="block max-w-full max-h-[inherit] object-contain mx-auto"
         autoPlay={autoPlay}
         onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
         onDurationChange={() => setDuration(videoRef.current?.duration || 0)}
@@ -182,13 +194,15 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
             {/* Bottom controls row */}
             <div className="flex items-center gap-2">
               {/* Skip back */}
-              <button
-                onClick={() => handleSkip(-10)}
-                className="rounded-full p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition"
-                title="Skip back 10s"
-              >
-                <SkipBack className="h-4 w-4" />
-              </button>
+              {containerWidth >= 320 && (
+                <button
+                  onClick={() => handleSkip(-10)}
+                  className="rounded-full p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition"
+                  title="Skip back 10s"
+                >
+                  <SkipBack className="h-4 w-4" />
+                </button>
+              )}
 
               {/* Play/Pause */}
               <button
@@ -199,13 +213,15 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
               </button>
 
               {/* Skip forward */}
-              <button
-                onClick={() => handleSkip(10)}
-                className="rounded-full p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition"
-                title="Skip forward 10s"
-              >
-                <SkipForward className="h-4 w-4" />
-              </button>
+              {containerWidth >= 320 && (
+                <button
+                  onClick={() => handleSkip(10)}
+                  className="rounded-full p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition"
+                  title="Skip forward 10s"
+                >
+                  <SkipForward className="h-4 w-4" />
+                </button>
+              )}
 
               {/* Time display */}
               <span className="ml-1 text-xs text-white/70 tabular-nums">
@@ -214,51 +230,55 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
 
               <div className="ml-auto flex items-center gap-2">
                 {/* Volume */}
-                <div className="flex items-center gap-1.5 group/vol">
-                  <button onClick={toggleMute} className="rounded-full p-1.5 text-white/70 hover:text-white transition">
-                    {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </button>
-                  <div className="w-0 overflow-hidden group-hover/vol:w-16 transition-all duration-300">
-                    <input
-                      type="range" min={0} max={1} step={0.05}
-                      value={isMuted ? 0 : volume}
-                      onChange={handleVolume}
-                      className="video-volume-slider w-16 h-1.5 accent-primary cursor-pointer"
-                    />
+                {containerWidth >= 380 && (
+                  <div className="flex items-center gap-1.5 group/vol">
+                    <button onClick={toggleMute} className="rounded-full p-1.5 text-white/70 hover:text-white transition">
+                      {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    </button>
+                    <div className="w-0 overflow-hidden group-hover/vol:w-16 transition-all duration-300">
+                      <input
+                        type="range" min={0} max={1} step={0.05}
+                        value={isMuted ? 0 : volume}
+                        onChange={handleVolume}
+                        className="video-volume-slider w-16 h-1.5 accent-primary cursor-pointer"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Playback speed */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSpeedMenu((s) => !s)}
-                    className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white/70 hover:text-white hover:bg-white/10 transition"
-                    title="Playback Speed"
-                  >
-                    <Gauge className="h-3.5 w-3.5" />
-                    <span>{playbackSpeed}x</span>
-                  </button>
-                  <AnimatePresence>
-                    {showSpeedMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                        className="absolute bottom-full right-0 mb-2 rounded-xl glass-strong p-1 shadow-cinema min-w-[80px]"
-                      >
-                        {speeds.map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => handleSpeed(s)}
-                            className={`w-full rounded-lg px-3 py-1.5 text-xs text-left transition hover:bg-primary/20 ${playbackSpeed === s ? "text-primary font-semibold" : "text-white/80"}`}
-                          >
-                            {s}x
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                {containerWidth >= 440 && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowSpeedMenu((s) => !s)}
+                      className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white/70 hover:text-white hover:bg-white/10 transition"
+                      title="Playback Speed"
+                    >
+                      <Gauge className="h-3.5 w-3.5" />
+                      <span>{playbackSpeed}x</span>
+                    </button>
+                    <AnimatePresence>
+                      {showSpeedMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                          className="absolute bottom-full right-0 mb-2 rounded-xl glass-strong p-1 shadow-cinema min-w-[80px]"
+                        >
+                          {speeds.map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => handleSpeed(s)}
+                              className={`w-full rounded-lg px-3 py-1.5 text-xs text-left transition hover:bg-primary/20 ${playbackSpeed === s ? "text-primary font-semibold" : "text-white/80"}`}
+                            >
+                              {s}x
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {/* Fullscreen */}
                 <button
