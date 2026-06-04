@@ -6,11 +6,11 @@ import { useCoupleStore } from "@/store/coupleStore";
 import toast from "react-hot-toast";
 
 const BACKGROUNDS = {
-  glassmorphism: "glass-strong border-white/10 text-white shadow-cinema",
-  sunset: "bg-gradient-to-br from-amber-500/10 via-rose-500/10 to-indigo-500/10 backdrop-blur-xl border border-rose-500/20 text-white shadow-cinema",
-  cosmic: "bg-gradient-to-br from-violet-600/10 via-indigo-600/10 to-fuchsia-600/10 backdrop-blur-xl border border-violet-500/20 text-white shadow-cinema",
-  rose: "bg-gradient-to-br from-rose-500/15 via-pink-500/10 to-red-500/5 backdrop-blur-xl border border-rose-400/25 text-white shadow-cinema",
-  emerald: "bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-indigo-500/5 backdrop-blur-xl border border-emerald-500/20 text-white shadow-cinema",
+  glassmorphism: "glass-strong border-white/10 text-foreground dark:text-white shadow-cinema",
+  sunset: "bg-gradient-to-br from-amber-500/10 via-rose-500/10 to-indigo-500/10 backdrop-blur-xl border border-rose-500/20 text-foreground dark:text-white shadow-cinema",
+  cosmic: "bg-gradient-to-br from-violet-600/10 via-indigo-600/10 to-fuchsia-600/10 backdrop-blur-xl border border-violet-500/20 text-foreground dark:text-white shadow-cinema",
+  rose: "bg-gradient-to-br from-rose-500/15 via-pink-500/10 to-red-500/5 backdrop-blur-xl border border-rose-400/25 text-foreground dark:text-white shadow-cinema",
+  emerald: "bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-indigo-500/5 backdrop-blur-xl border border-emerald-500/20 text-foreground dark:text-white shadow-cinema",
 };
 
 const FONTS = {
@@ -67,7 +67,7 @@ export function LoveNoteCard() {
             <h2 className={`text-2xl sm:text-3xl font-display font-bold leading-tight mb-4`}>
               {lovenote.title}
             </h2>
-            <div className={`space-y-2 text-base md:text-lg text-white/95 ${fontStyle}`}>
+            <div className={`space-y-2 text-base md:text-lg text-foreground/80 dark:text-white/95 ${fontStyle}`}>
               {lines.map((line: string, i: number) => (
                 <p key={i}>{line}</p>
               ))}
