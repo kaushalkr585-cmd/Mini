@@ -151,7 +151,29 @@
     background: color-mix(in oklab, var(--card) 80%, transparent);
     backdrop-filter: blur(32px) saturate(200%);
     -webkit-backdrop-filter: blur(32px) saturate(200%);
-    border: 1px solid var(--color-border);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    box-shadow: 0 0 0 1px oklch(0.72 0.28 350 / 0.06), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  }
+  /* Card with pink glow on hover */
+  .glass-card {
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.07), oklch(1 0 0 / 0.03));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 0.10);
+    box-shadow: 0 4px 24px oklch(0 0 0 / 0.3), inset 0 1px 0 oklch(1 0 0 / 0.06);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .glass-card:hover {
+    border-color: oklch(0.72 0.28 350 / 0.25);
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.4), 0 0 20px oklch(0.72 0.32 350 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  }
+  /* Modal glass */
+  .glass-modal {
+    background: linear-gradient(135deg, oklch(0.12 0.03 340 / 0.95), oklch(0.10 0.02 350 / 0.98));
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    box-shadow: 0 0 0 1px oklch(0.72 0.28 350 / 0.1), 0 30px 60px -15px oklch(0 0 0 / 0.8), 0 0 80px oklch(0.72 0.32 350 / 0.08);
   }
   .text-gradient {
     background: linear-gradient(135deg, var(--color-rose), var(--color-glow), oklch(0.85 0.18 20));
@@ -168,4 +190,52 @@
   }
   .scrollbar-hidden::-webkit-scrollbar { display: none; }
   .scrollbar-hidden { scrollbar-width: none; }
+
+  /* ── Custom Video Player ────────────────────────────────────── */
+  .video-controls-gradient {
+    background: linear-gradient(to top, oklch(0 0 0 / 0.85) 0%, oklch(0 0 0 / 0.4) 60%, transparent 100%);
+  }
+  .video-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: oklch(1 0 0 / 0.2);
+    outline: none;
+    cursor: pointer;
+  }
+  .video-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: oklch(0.72 0.28 350);
+    box-shadow: 0 0 6px oklch(0.72 0.32 350 / 0.6);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .video-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+  }
+  .video-volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: oklch(0.72 0.28 350);
+    cursor: pointer;
+  }
+
+  /* Search bar glow */
+  .search-glass {
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.07), oklch(1 0 0 / 0.03));
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 0.10);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .search-glass:focus-within {
+    border-color: oklch(0.72 0.28 350 / 0.4);
+    box-shadow: 0 0 0 3px oklch(0.72 0.28 350 / 0.12);
+  }
 }

@@ -59,6 +59,9 @@ export interface Category {
   name: string;
   emoji: string;
   color: string;
+  coverImage: string;
+  photoCount: number;
+  videoCount: number;
   createdBy: { _id: string; name: string; role: string };
   createdAt: string;
 }
@@ -99,9 +102,11 @@ interface CoupleState {
   fetchPartner: () => Promise<void>;
   fetchCategories: () => Promise<void>;
   createCategory: (data: any) => Promise<void>;
+  editCategory: (id: string, data: { name?: string; emoji?: string; color?: string }) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   fetchMemories: (filter?: Record<string, string>) => Promise<void>;
   uploadMemory: (formData: FormData) => Promise<void>;
+  uploadToCategory: (categoryId: string, formData: FormData) => Promise<void>;
   deleteMemory: (id: string) => Promise<void>;
   editMemory: (id: string, data: any) => Promise<void>;
   likeMemory: (id: string) => Promise<void>;
@@ -163,6 +168,22 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     }
   },
 
+  uploadToCategory: async (categoryId, formData) => {
+    set({ loading: true });
+    try {
+      formData.append('categoryId', categoryId);
+      await api.post('/memories/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      // Refresh categories to get updated counts
+      await get().fetchCategories();
+      set({ loading: false });
+    } catch {
+      set({ loading: false });
+      throw new Error('Upload failed');
+    }
+  },
+
   fetchMemories: async (filter = {}) => {
     set({ loading: true });
     try {
@@ -213,6 +234,13 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
   createCategory: async (data) => {
     await api.post('/categories', data);
     // Socket will broadcast and update
+  },
+
+  editCategory: async (id, data) => {
+    try {
+      const { data: res } = await api.patch(`/categories/${id}`, data);
+      set((s) => ({ categories: s.categories.map((c) => c._id === id ? res : c) }));
+    } catch { throw new Error('Failed to update category'); }
   },
 
   deleteCategory: async (id) => {
@@ -462,6 +490,9 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
         if (s.categories.some(c => c._id === cat._id)) return s;
         return { categories: [...s.categories, cat] };
       });
+    });
+    socket.on('category:updated', (cat: Category) => {
+      set((s) => ({ categories: s.categories.map((c) => c._id === cat._id ? cat : c) }));
     });
     socket.on('category:deleted', ({ id }: { id: string }) => {
       set((s) => ({ categories: s.categories.filter((c) => c._id !== id) }));

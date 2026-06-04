@@ -49,12 +49,12 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="w-full max-w-lg rounded-3xl glass-strong shadow-cinema flex flex-col max-h-[90vh]"
+          className="w-full max-w-lg rounded-3xl glass-modal shadow-cinema flex flex-col max-h-[90vh]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 p-5">
             <h2 className="font-display text-xl font-bold">Edit Memory</h2>
-            <button onClick={onClose} className="rounded-full glass p-2 text-muted-foreground hover:text-white transition">
+            <button onClick={onClose} className="btn-glass-icon">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -144,18 +144,8 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
             </div>
 
             <div className="pt-4 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl glass-strong px-5 py-2.5 text-sm font-semibold hover:bg-white/10 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow hover:shadow-[0_0_30px_oklch(0.72_0.32_350/0.5)] transition disabled:opacity-50"
-              >
+              <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
+              <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
                 {loading ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 ) : (

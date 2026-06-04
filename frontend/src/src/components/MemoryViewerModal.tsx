@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Heart, Play, Pause, Calendar, MapPin, Edit2, Trash2 } from "lucide-react";
 import { Memory, useCoupleStore } from "@/store/coupleStore";
 import { MemoryEditModal } from "./MemoryEditModal";
+import { CustomVideoPlayer } from "./CustomVideoPlayer";
 
 const REACTIONS = ["❤️", "😍", "😂", "😢"];
 
@@ -74,7 +75,7 @@ export function MemoryViewerModal({ memory: initialMemory, onClose, onLike }: { 
               <span className="text-sm font-medium text-white/70">{currentIndex + 1} / {images.length}</span>
             )}
           </div>
-          <button onClick={onClose} className="rounded-full glass p-2 text-white/70 hover:text-white hover:bg-white/10 transition">
+          <button onClick={onClose} className="btn-glass-icon">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -82,19 +83,27 @@ export function MemoryViewerModal({ memory: initialMemory, onClose, onLike }: { 
         {/* Main Content Layout */}
         <div className="relative z-0 flex h-full w-full flex-col lg:flex-row items-center pt-20 pb-6 px-6 gap-8">
           
-          {/* Image Area */}
+          {/* Image/Video Area */}
           <div className="relative flex-1 flex min-h-0 w-full items-center justify-center overflow-hidden rounded-2xl">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={currentIndex}
-                initial={{ opacity: 0, scale: 0.98, x: 20 }}
-                animate={{ opacity: 1, scale: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 1.02, x: -20 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                src={images[currentIndex]}
-                className="max-h-full max-w-full object-contain shadow-2xl rounded-lg"
+            {memory.type === 'video' ? (
+              <CustomVideoPlayer
+                src={memory.url}
+                thumbnail={memory.thumbnail}
+                className="w-full h-full max-h-[70vh]"
               />
-            </AnimatePresence>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentIndex}
+                  initial={{ opacity: 0, scale: 0.98, x: 20 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 1.02, x: -20 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  src={images[currentIndex]}
+                  className="max-h-full max-w-full object-contain shadow-2xl rounded-lg"
+                />
+              </AnimatePresence>
+            )}
 
             {images.length > 1 && (
               <>
@@ -194,7 +203,7 @@ export function MemoryViewerModal({ memory: initialMemory, onClose, onLike }: { 
                     onClose();
                   }
                 }}
-                className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-rose/10 text-rose py-3 hover:bg-rose/20 transition"
+                className="flex items-center justify-center gap-2 flex-1 rounded-xl btn-danger py-3 hover:bg-rose/20 transition"
               >
                 <Trash2 className="h-5 w-5" />
                 <span className="text-sm font-medium">Delete</span>

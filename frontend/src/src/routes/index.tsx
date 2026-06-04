@@ -11,6 +11,7 @@ import { useCoupleStore, Memory } from "@/store/coupleStore";
 import { MemoryViewerModal } from "@/components/MemoryViewerModal";
 import { UploadMemoryModal } from "@/components/UploadMemoryModal";
 import { ReliveMemoriesSlideshow } from "@/components/ReliveMemoriesSlideshow";
+import { MemoryCollections } from "@/components/MemoryCollections";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -86,6 +87,8 @@ function Index() {
             </div>
           )}
         </div>
+        {/* Memory Collections — categories below Recent Memories */}
+        <MemoryCollections />
         <LoveQuote />
         <Timeline />
         <Footer />

@@ -140,18 +140,335 @@
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL GLASSMORPHISM BUTTON SYSTEM
+   Inspired by dark frosted-glass icon buttons & solid pill CTAs
+   ═══════════════════════════════════════════════════════════════ */
+@layer components {
+
+  /* ── Base glass button (icon + text, dark frosted) ─────────── */
+  .btn-glass {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 0.07);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 0.14);
+    color: oklch(0.92 0.02 340);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 2px 12px oklch(0 0 0 / 0.25), inset 0 1px 0 oklch(1 0 0 / 0.10);
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .btn-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.10) 0%, transparent 60%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .btn-glass:hover {
+    background: oklch(1 0 0 / 0.12);
+    border-color: oklch(1 0 0 / 0.22);
+    box-shadow: 0 4px 20px oklch(0 0 0 / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.15);
+    transform: translateY(-1px);
+  }
+  .btn-glass:hover::before { opacity: 1; }
+  .btn-glass:active { transform: translateY(0) scale(0.97); }
+
+  /* Light mode override for base glass button */
+  .light .btn-glass {
+    background: oklch(1 0 0 / 0.3);
+    border-color: oklch(0.65 0.22 350 / 0.15);
+    color: oklch(0.45 0.15 350);
+    box-shadow:
+      0 2px 12px oklch(0.65 0.22 350 / 0.05),
+      inset 0 1px 0 oklch(1 0 0 / 0.4);
+  }
+  .light .btn-glass::before {
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.3) 0%, transparent 60%);
+  }
+  .light .btn-glass:hover {
+    background: oklch(0.65 0.22 350 / 0.1);
+    border-color: oklch(0.65 0.22 350 / 0.35);
+    color: oklch(0.65 0.22 350);
+    box-shadow:
+      0 4px 20px oklch(0.65 0.22 350 / 0.12),
+      inset 0 1px 0 oklch(1 0 0 / 0.5);
+  }
+
+  /* ── Circular icon-only glass button (matching screenshots) ── */
+  .btn-glass-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 0.06);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 0.14);
+    color: oklch(0.88 0.03 340);
+    width: 2.75rem;
+    height: 2.75rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+      0 2px 12px oklch(0 0 0 / 0.3),
+      inset 0 1px 0 oklch(1 0 0 / 0.10),
+      inset 0 -1px 0 oklch(0 0 0 / 0.05);
+    flex-shrink: 0;
+  }
+  .btn-glass-icon:hover {
+    background: oklch(1 0 0 / 0.12);
+    border-color: oklch(0.72 0.28 350 / 0.4);
+    box-shadow:
+      0 4px 20px oklch(0 0 0 / 0.4),
+      0 0 16px oklch(0.72 0.32 350 / 0.15),
+      inset 0 1px 0 oklch(1 0 0 / 0.18);
+    transform: scale(1.08);
+    color: oklch(0.98 0.01 340);
+  }
+  .btn-glass-icon:active { transform: scale(0.95); }
+
+  /* Light mode override for icon-only glass button */
+  .light .btn-glass-icon {
+    background: oklch(1 0 0 / 0.45);
+    border-color: oklch(0.65 0.22 350 / 0.18);
+    color: oklch(0.45 0.15 350);
+    box-shadow:
+      0 2px 12px oklch(0.65 0.22 350 / 0.05),
+      inset 0 1px 0 oklch(1 0 0 / 0.5),
+      inset 0 -1px 0 oklch(0 0 0 / 0.02);
+  }
+  .light .btn-glass-icon:hover {
+    background: oklch(0.65 0.22 350 / 0.1);
+    border-color: oklch(0.65 0.22 350 / 0.35);
+    color: oklch(0.65 0.22 350);
+    box-shadow:
+      0 4px 20px oklch(0.65 0.22 350 / 0.12),
+      0 0 16px oklch(0.65 0.22 350 / 0.08),
+      inset 0 1px 0 oklch(1 0 0 / 0.6);
+  }
+
+  /* ── Solid primary CTA (white/pink pill — "SUBSCRIBE" style) ─ */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.75rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: var(--shadow-glow), 0 4px 16px oklch(0.72 0.32 350 / 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.2) 0%, transparent 60%);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 60px oklch(0.72 0.32 350 / 0.6), 0 8px 24px oklch(0.72 0.32 350 / 0.4);
+    transform: translateY(-2px) scale(1.02);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.45; pointer-events: none; }
+
+  /* ── Ghost / outline glass button ────────────────────────────── */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: transparent;
+    border: 1px solid oklch(1 0 0 / 0.10);
+    color: oklch(0.75 0.03 340);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-ghost:hover {
+    background: oklch(1 0 0 / 0.06);
+    border-color: oklch(1 0 0 / 0.18);
+    color: oklch(0.95 0.01 340);
+  }
+  .btn-ghost:active { transform: scale(0.97); }
+
+  /* ── Danger / destructive button ─────────────────────────────── */
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: oklch(0.65 0.25 25 / 0.12);
+    border: 1px solid oklch(0.65 0.25 25 / 0.25);
+    color: oklch(0.78 0.22 25);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-danger:hover {
+    background: oklch(0.65 0.25 25 / 0.2);
+    border-color: oklch(0.65 0.25 25 / 0.4);
+    box-shadow: 0 0 20px oklch(0.65 0.25 25 / 0.2);
+  }
+  .btn-danger:active { transform: scale(0.97); }
+
+  /* ── Glass input field (frosted glass style) ─────────────────── */
+  .input-glass {
+    width: 100%;
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 0.06);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    padding: 0.75rem 1.5rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-glass::placeholder { color: oklch(0.7 0.03 340 / 0.7); }
+  .input-glass:focus {
+    border-color: oklch(0.72 0.28 350 / 0.5);
+    box-shadow: 0 0 0 3px oklch(0.72 0.28 350 / 0.12), 0 2px 12px oklch(0 0 0 / 0.2);
+  }
+
+  /* ── Input with inline solid CTA (email subscribe style) ─────── */
+  .input-glass-group {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 0.06);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-glass-group:focus-within {
+    border-color: oklch(0.72 0.28 350 / 0.4);
+    box-shadow: 0 0 0 3px oklch(0.72 0.28 350 / 0.10);
+  }
+  .input-glass-group input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--foreground);
+  }
+  .input-glass-group input::placeholder { color: oklch(0.7 0.03 340 / 0.7); }
+  .input-glass-group .input-cta {
+    background: var(--foreground);
+    color: var(--background);
+    border: none;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+    margin: 0.25rem;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .input-glass-group .input-cta:hover { opacity: 0.85; transform: scale(1.03); }
+
+  /* ── Upload progress bar ──────────────────────────────────────── */
+  .upload-progress-bar {
+    height: 3px;
+    border-radius: 9999px;
+    background: oklch(1 0 0 / 0.1);
+    overflow: hidden;
+  }
+  .upload-progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, var(--primary), oklch(0.85 0.18 20));
+    transition: width 0.3s ease;
+    position: relative;
+  }
+  .upload-progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translate(50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--glow);
+  }
+}
+
+
 @layer utilities {
   .glass {
     background: var(--gradient-card);
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--color-border);
   }
   .glass-strong {
     background: color-mix(in oklab, var(--card) 90%, transparent);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid var(--color-border);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    box-shadow: 0 0 0 1px oklch(0.72 0.28 350 / 0.06), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  }
+  /* Card with pink glow on hover */
+  .glass-card {
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.07), oklch(1 0 0 / 0.03));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid oklch(1 0 0 / 0.10);
+    box-shadow: 0 4px 24px oklch(0 0 0 / 0.3), inset 0 1px 0 oklch(1 0 0 / 0.06);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .glass-card:hover {
+    border-color: oklch(0.72 0.28 350 / 0.25);
+    box-shadow: 0 8px 32px oklch(0 0 0 / 0.4), 0 0 20px oklch(0.72 0.32 350 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  }
+  /* Modal glass */
+  .glass-modal {
+    background: linear-gradient(135deg, oklch(0.12 0.03 340 / 0.95), oklch(0.10 0.02 350 / 0.98));
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    box-shadow: 0 0 0 1px oklch(0.72 0.28 350 / 0.1), 0 30px 60px -15px oklch(0 0 0 / 0.8), 0 0 80px oklch(0.72 0.32 350 / 0.08);
   }
   .text-gradient {
     background: linear-gradient(135deg, var(--color-rose), var(--color-glow), oklch(0.85 0.18 20));
@@ -169,4 +486,52 @@
   }
   .scrollbar-hidden::-webkit-scrollbar { display: none; }
   .scrollbar-hidden { scrollbar-width: none; }
+
+  /* ── Custom Video Player ────────────────────────────────────── */
+  .video-controls-gradient {
+    background: linear-gradient(to top, oklch(0 0 0 / 0.85) 0%, oklch(0 0 0 / 0.4) 60%, transparent 100%);
+  }
+  .video-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: oklch(1 0 0 / 0.2);
+    outline: none;
+    cursor: pointer;
+  }
+  .video-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: oklch(0.72 0.28 350);
+    box-shadow: 0 0 6px oklch(0.72 0.32 350 / 0.6);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .video-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+  }
+  .video-volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: oklch(0.72 0.28 350);
+    cursor: pointer;
+  }
+
+  /* Search bar glow */
+  .search-glass {
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.07), oklch(1 0 0 / 0.03));
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid oklch(1 0 0 / 0.10);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .search-glass:focus-within {
+    border-color: oklch(0.72 0.28 350 / 0.4);
+    box-shadow: 0 0 0 3px oklch(0.72 0.28 350 / 0.12);
+  }
 }

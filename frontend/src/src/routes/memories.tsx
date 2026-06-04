@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { Heart, Play, Plus, Search, Filter, Trash2, FolderPlus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Heart, Play, Plus, Search, Filter, Trash2, FolderPlus, Video } from "lucide-react";
 import { useCoupleStore, Memory } from "@/store/coupleStore";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { AddCategoryModal } from "@/components/AddCategoryModal";
@@ -65,17 +65,14 @@ function MemoriesPage() {
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
-              type="text"
-              placeholder="Search memories…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-xl glass-strong py-3 pl-11 pr-4 text-sm outline-none ring-0 focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60"
+              type="text" placeholder="Search memories…" value={query} onChange={(e) => setQuery(e.target.value)}
+              className="w-full rounded-xl glass-strong py-3 pl-11 pr-4 text-sm outline-none focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60"
             />
           </div>
-          <button onClick={() => setIsAddCategoryOpen(true)} className="flex items-center gap-2 rounded-xl glass-strong px-5 py-3 text-sm font-medium hover:bg-primary/10 transition">
+          <button onClick={() => setIsAddCategoryOpen(true)} className="btn-glass flex items-center gap-2">
             <FolderPlus className="h-4 w-4" /> New Category
           </button>
-          <button onClick={() => setIsUploadMemoryOpen(true)} className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow hover:shadow-[0_0_60px_oklch(0.72_0.32_350/0.6)] transition-all">
+          <button onClick={() => setIsUploadMemoryOpen(true)} className="btn-primary flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Memory
           </button>
         </motion.div>
@@ -133,7 +130,23 @@ function MemoriesPage() {
                 onClick={() => setSelectedMemory(m)}
               >
                 {m.type === 'video' ? (
-                   <video src={m.url} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" muted loop playsInline onMouseEnter={(e) => e.currentTarget.play()} onMouseLeave={(e) => e.currentTarget.pause()} />
+                  <div className="absolute inset-0">
+                    <video
+                      src={m.url}
+                      poster={m.thumbnail}
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      muted loop playsInline
+                      onMouseEnter={(e) => e.currentTarget.play()}
+                      onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                    />
+                    {/* Video play icon overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none">
+                      <div className="h-10 w-10 rounded-full glass-strong flex items-center justify-center shadow-glow">
+                        <Play className="h-4 w-4 fill-white text-white translate-x-px" />
+                      </div>
+                    </div>
+                    <VideoGridDuration src={m.url} />
+                  </div>
                 ) : (
                   <img
                     src={m.url}
@@ -227,5 +240,35 @@ function MemoriesPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function VideoGridDuration({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [duration, setDuration] = useState<string | null>(null);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        className="hidden"
+        preload="metadata"
+        onLoadedMetadata={() => {
+          const v = videoRef.current;
+          if (v && isFinite(v.duration)) {
+            const m = Math.floor(v.duration / 60);
+            const s = Math.floor(v.duration % 60);
+            setDuration(`${m}:${s.toString().padStart(2, "0")}`);
+          }
+        }}
+      />
+      {duration && (
+        <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums flex items-center gap-1 z-10">
+          <Video className="h-2.5 w-2.5" />
+          {duration}
+        </div>
+      )}
+    </>
   );
 }

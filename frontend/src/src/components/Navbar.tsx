@@ -69,11 +69,11 @@ export function Navbar() {
           </nav>
 
           {/* Right actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {/* Search */}
             <Link
               to="/search"
-              className="rounded-full p-2 text-muted-foreground hover:text-foreground transition"
+              className="btn-glass-icon"
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function Navbar() {
             {/* Theme toggle */}
             <button
               onClick={toggle}
-              className="rounded-full p-2 text-muted-foreground hover:text-foreground transition"
+              className="btn-glass-icon"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -93,7 +93,7 @@ export function Navbar() {
               <>
                 <Link
                   to="/admin"
-                  className="rounded-full p-2 text-muted-foreground hover:text-foreground transition"
+                  className="btn-glass-icon"
                   title="Admin Dashboard"
                 >
                   <Shield className="h-4 w-4" />
@@ -130,7 +130,7 @@ export function Navbar() {
               <>
                 <Link
                   to="/login"
-                  className="hidden md:flex items-center gap-1.5 rounded-full glass px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
+                  className="hidden md:flex btn-glass"
                 >
                   <LogIn className="h-3.5 w-3.5" />
                   Sign In
@@ -145,7 +145,7 @@ export function Navbar() {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
-              className="rounded-full p-2 text-muted-foreground hover:text-foreground transition md:hidden"
+              className="btn-glass-icon md:hidden"
               aria-label="Menu"
             >
               {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}

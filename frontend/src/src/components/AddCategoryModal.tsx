@@ -42,11 +42,11 @@ export function AddCategoryModal({ isOpen, onClose }: { isOpen: boolean; onClose
       >
         <motion.div
           initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md overflow-hidden rounded-3xl glass-strong shadow-cinema"
+          className="relative w-full max-w-md overflow-hidden rounded-3xl glass-modal shadow-cinema"
         >
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
             <h2 className="font-display text-2xl font-semibold">New Category</h2>
-            <button onClick={onClose} className="rounded-full p-2 text-muted-foreground hover:bg-white/5 hover:text-white transition">
+            <button onClick={onClose} className="btn-glass-icon">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -74,9 +74,9 @@ export function AddCategoryModal({ isOpen, onClose }: { isOpen: boolean; onClose
           </form>
 
           <div className="border-t border-white/10 p-6 flex justify-end gap-3">
-            <button onClick={onClose} className="rounded-xl px-5 py-2.5 text-sm font-medium hover:bg-white/5 transition">Cancel</button>
-            <button form="category-form" type="submit" disabled={loading} className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow hover:shadow-[0_0_40px_oklch(0.72_0.32_350/0.5)] transition disabled:opacity-50">
-              {loading ? "Creating..." : "Create"}
+            <button onClick={onClose} className="btn-ghost">Cancel</button>
+            <button form="category-form" type="submit" disabled={loading} className="btn-primary">
+              {loading ? "Creating..." : "Create Collection"}
             </button>
           </div>
         </motion.div>

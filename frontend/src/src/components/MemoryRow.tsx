@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { useRef } from "react";
-import { ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Heart, Play, Video } from "lucide-react";
 import type { Memory } from "@/store/coupleStore";
 
 export function MemoryRow({
@@ -49,6 +49,36 @@ export function MemoryRow({
   );
 }
 
+function VideoDurationBadge({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [duration, setDuration] = useState<string | null>(null);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        className="hidden"
+        preload="metadata"
+        onLoadedMetadata={() => {
+          const v = videoRef.current;
+          if (v && isFinite(v.duration)) {
+            const m = Math.floor(v.duration / 60);
+            const s = Math.floor(v.duration % 60);
+            setDuration(`${m}:${s.toString().padStart(2, "0")}`);
+          }
+        }}
+      />
+      {duration && (
+        <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums flex items-center gap-1 z-10">
+          <Video className="h-2.5 w-2.5" />
+          {duration}
+        </div>
+      )}
+    </>
+  );
+}
+
 function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: () => void }) {
   return (
     <motion.article
@@ -59,9 +89,31 @@ function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: ()
       whileHover={{ y: -8, scale: 1.02 }}
       onClick={onOpen}
       className="group relative h-[280px] w-[220px] sm:h-[360px] sm:w-[280px] flex-none snap-start overflow-hidden rounded-2xl shadow-cinema cursor-pointer"
+      style={{
+        backdropFilter: "blur(2px)",
+        border: "1px solid oklch(1 0 0 / 0.07)",
+      }}
     >
       {m.type === 'video' ? (
-        <video src={m.url} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" muted loop playsInline onMouseEnter={(e) => e.currentTarget.play()} onMouseLeave={(e) => e.currentTarget.pause()} />
+        <>
+          <video
+            src={m.url}
+            poster={m.thumbnail}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            muted
+            loop
+            playsInline
+            onMouseEnter={(e) => e.currentTarget.play()}
+            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+          />
+          {/* Play icon overlay for videos */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none">
+            <div className="h-12 w-12 rounded-full glass-strong flex items-center justify-center shadow-glow">
+              <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
+            </div>
+          </div>
+          <VideoDurationBadge src={m.url} />
+        </>
       ) : (
         <img src={m.url} alt={m.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
       )}
@@ -89,7 +141,7 @@ function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: ()
           <button className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
             <Play className="h-3 w-3 fill-current" /> Open
           </button>
-          <button className="rounded-full glass p-2" onClick={(e) => { e.stopPropagation(); /* like logic handled in parent usually, but left dummy for now */ }}>
+          <button className="rounded-full glass p-2">
             <Heart className={`h-3.5 w-3.5 ${m.likes && m.likes.length > 0 ? 'fill-rose text-rose' : ''}`} />
           </button>
         </div>
