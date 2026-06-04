@@ -13,6 +13,8 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
   const [location, setLocation] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [tag, setTag] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     if (memory && isOpen) {
@@ -22,15 +24,40 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
       setLocation(memory.location || "");
       setCategoryId(memory.categoryId || "");
       setTag(memory.tag || "");
+      setTags(memory.tags || []);
+      setTagInput("");
     }
   }, [memory, isOpen]);
+
+  const handleAddTag = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const clean = tagInput.trim().replace(/^#/, "");
+      if (clean && !tags.includes(clean)) {
+        setTags([...tags, clean]);
+      }
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memory) return;
     setLoading(true);
     try {
-      await editMemory(memory._id, { title, sub, notes, location, categoryId, tag });
+      await editMemory(memory._id, { 
+        title, 
+        sub, 
+        notes, 
+        location, 
+        categoryId, 
+        tag: tags[0] || tag || "Memory", 
+        tags 
+      });
       onClose();
     } catch (err) {
       console.error(err);
@@ -45,7 +72,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 dark"
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -117,17 +144,27 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="flex flex-col">
                 <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  <TagIcon className="h-3.5 w-3.5" /> Tag (Pill)
+                  <TagIcon className="h-3.5 w-3.5" /> Tags
                 </label>
-                <input
-                  type="text"
-                  value={tag}
-                  onChange={e => setTag(e.target.value)}
-                  className="w-full rounded-xl glass py-3 px-4 outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
-                  placeholder="e.g. VLOG, PHOTO"
-                />
+                <div className="flex flex-wrap gap-2 p-2 rounded-xl glass min-h-[46px] items-center">
+                  {tags.map((t, idx) => (
+                    <span key={idx} className="flex items-center gap-1 bg-primary/20 text-primary rounded-full px-2.5 py-1 text-xs font-semibold">
+                      #{t}
+                      <button type="button" onClick={() => handleRemoveTag(idx)} className="hover:text-rose transition-colors">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleAddTag}
+                    placeholder={tags.length === 0 ? "Type tag and press Enter…" : "Add tag…"}
+                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 py-1 text-white placeholder:text-muted-foreground/40"
+                  />
+                </div>
               </div>
             </div>
 

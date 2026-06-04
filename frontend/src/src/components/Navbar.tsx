@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Heart, Moon, Sun, Search, LogIn, Menu, X, Shield, LogOut } from "lucide-react";
@@ -20,8 +20,12 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const { onlineUsers, partner } = useCoupleStore();
+  const location = useLocation();
   
   const isPartnerOnline = onlineUsers.some(u => u.userId !== user?.id);
+
+  // Hide navbar on the chat page — it has its own header
+  if (location.pathname === "/chat") return null;
 
   return (
     <>

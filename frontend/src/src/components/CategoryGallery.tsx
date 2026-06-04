@@ -333,41 +333,36 @@ function FullscreenViewer({
 
 // ─── Video card with thumbnail/duration overlay ───────────────────────────────
 
+function formatDuration(sec?: number) {
+  if (!sec) return "";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 function VideoCard({ memory, onClick }: { memory: Memory; onClick: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [duration, setDuration] = useState<string | null>(null);
+  const durationText = memory.duration ? formatDuration(memory.duration) : null;
 
   return (
     <div className="relative w-full h-full overflow-hidden" onClick={onClick}>
-      <video
-        ref={videoRef}
-        src={memory.url}
-        poster={memory.thumbnail}
-        className="absolute inset-0 h-full w-full object-cover"
-        muted
-        playsInline
-        preload="metadata"
-        onLoadedMetadata={() => {
-          const v = videoRef.current;
-          if (v && isFinite(v.duration)) {
-            const m = Math.floor(v.duration / 60);
-            const s = Math.floor(v.duration % 60);
-            setDuration(`${m}:${s.toString().padStart(2, "0")}`);
-          }
-        }}
+      <img
+        src={memory.thumbnail || (memory.url.includes('cloudinary.com') ? memory.url.replace('/upload/', '/upload/c_limit,w_640,h_360,f_jpg,q_auto,so_0/') : memory.url)}
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        alt={memory.title}
+        loading="lazy"
       />
       {/* Play overlay */}
-      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <div className="h-12 w-12 rounded-full glass-strong flex items-center justify-center shadow-glow">
           <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
         </div>
       </div>
-      {duration && (
-        <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums">
-          {duration}
+      {durationText && (
+        <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums z-10">
+          {durationText}
         </div>
       )}
-      <div className="absolute top-2 left-2 rounded-full glass px-2 py-0.5 text-[9px] text-white/90 font-medium flex items-center gap-1">
+      <div className="absolute top-2 left-2 rounded-full glass px-2 py-0.5 text-[9px] text-white/90 font-medium flex items-center gap-1 z-10">
         <Video className="h-2.5 w-2.5" />
         VIDEO
       </div>

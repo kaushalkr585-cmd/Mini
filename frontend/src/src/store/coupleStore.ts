@@ -47,6 +47,9 @@ export interface Memory {
   urls: string[];
   publicIds: string[];
   thumbnail: string;
+  duration?: number;
+  resolution?: string;
+  tags?: string[];
   categoryId: string | null;
   uploadedBy: { _id: string; name: string; role: string };
   likes: string[];
@@ -99,6 +102,9 @@ interface CoupleState {
   activity: Activity[];
   onlineUsers: { userId: string; name: string }[];
   loading: boolean;
+  lovenote: any | null;
+  fetchLoveNote: () => Promise<void>;
+  updateLoveNote: (formData: FormData) => Promise<void>;
   fetchPartner: () => Promise<void>;
   fetchCategories: () => Promise<void>;
   createCategory: (data: any) => Promise<void>;
@@ -149,10 +155,37 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
   onlineUsers: [],
   typingUser: null,
   loading: false,
+  lovenote: null,
 
   fetchPartner: async () => {
     const { data } = await api.get('/auth/partner');
     set({ partner: data });
+  },
+
+  fetchLoveNote: async () => {
+    try {
+      const { data } = await api.get('/lovenote');
+      set({ lovenote: data });
+    } catch (err) {
+      console.error('Failed to fetch LoveNote:', err);
+    }
+  },
+
+  updateLoveNote: async (formData) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.put('/lovenote', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      set({ lovenote: data });
+      toast.success('Love Note updated successfully! ❤️');
+    } catch (err: any) {
+      console.error('Failed to update LoveNote:', err);
+      toast.error('Failed to update Love Note');
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   uploadMemory: async (formData) => {
@@ -472,6 +505,9 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
         if (s.memories.some(m => m._id === memory._id)) return s;
         return { memories: [memory, ...s.memories] };
       });
+    });
+    socket.on('lovenote:updated', (note: any) => {
+      set({ lovenote: note });
     });
     socket.on('memory:deleted', ({ id }: { id: string }) => {
       set((s) => ({ memories: s.memories.filter((m) => m._id !== id) }));

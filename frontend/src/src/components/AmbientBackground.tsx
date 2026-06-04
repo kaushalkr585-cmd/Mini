@@ -59,7 +59,6 @@ export function AmbientBackground() {
         className="pointer-events-none fixed inset-0 z-0 opacity-70"
         aria-hidden
       />
-      <div className="glow-orb pointer-events-none fixed -top-40 -left-40 z-0 h-[500px] w-[500px] rounded-full" />
       <div className="glow-orb pointer-events-none fixed -bottom-40 -right-40 z-0 h-[600px] w-[600px] rounded-full" />
     </>
   );

@@ -29,7 +29,11 @@ function MemoriesPage() {
 
   const filtered = memories.filter((m) => {
     const matchCat = activeCategory === "All" || m.categoryId === activeCategory;
-    const matchQuery = m.title.toLowerCase().includes(query.toLowerCase()) || m.sub.toLowerCase().includes(query.toLowerCase());
+    const matchQuery = 
+      m.title.toLowerCase().includes(query.toLowerCase()) || 
+      m.sub.toLowerCase().includes(query.toLowerCase()) ||
+      (m.tags && m.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))) ||
+      (m.tag && m.tag.toLowerCase().includes(query.toLowerCase()));
     return matchCat && matchQuery;
   });
 
@@ -132,10 +136,11 @@ function MemoriesPage() {
                 {m.type === 'video' ? (
                   <div className="absolute inset-0">
                     <video
-                      src={m.url}
+                      src={m.url.includes('cloudinary.com') ? m.url.replace('/upload/', '/upload/c_limit,w_640,h_360,q_auto,f_auto/') : m.url}
                       poster={m.thumbnail}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                       muted loop playsInline
+                      preload="none"
                       onMouseEnter={(e) => e.currentTarget.play()}
                       onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                     />
@@ -145,7 +150,12 @@ function MemoriesPage() {
                         <Play className="h-4 w-4 fill-white text-white translate-x-px" />
                       </div>
                     </div>
-                    <VideoGridDuration src={m.url} />
+                    {m.duration ? (
+                      <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums flex items-center gap-1 z-10">
+                        <Video className="h-2.5 w-2.5" />
+                        {formatDuration(m.duration)}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <img
@@ -165,8 +175,20 @@ function MemoriesPage() {
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   style={{ background: "radial-gradient(circle at 50% 30%, oklch(0.72 0.32 350 / 0.3), transparent 70%)" }}
                 />
-                <div className="absolute right-2 top-2 rounded-full glass px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider">
-                  {m.tag}
+                <div className="absolute right-2 top-2 flex flex-col items-end gap-1 z-10 max-w-[70%]">
+                  {m.tags && m.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {m.tags.slice(0, 2).map(t => (
+                        <span key={t} className="rounded-full glass px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="rounded-full glass px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider">
+                      {m.tag}
+                    </span>
+                  )}
                 </div>
                 <div className="absolute inset-x-0 bottom-0 p-3">
                   <p className="text-[10px] text-rose">{m.sub}</p>
@@ -243,32 +265,9 @@ function MemoriesPage() {
   );
 }
 
-function VideoGridDuration({ src }: { src: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [duration, setDuration] = useState<string | null>(null);
-
-  return (
-    <>
-      <video
-        ref={videoRef}
-        src={src}
-        className="hidden"
-        preload="metadata"
-        onLoadedMetadata={() => {
-          const v = videoRef.current;
-          if (v && isFinite(v.duration)) {
-            const m = Math.floor(v.duration / 60);
-            const s = Math.floor(v.duration % 60);
-            setDuration(`${m}:${s.toString().padStart(2, "0")}`);
-          }
-        }}
-      />
-      {duration && (
-        <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums flex items-center gap-1 z-10">
-          <Video className="h-2.5 w-2.5" />
-          {duration}
-        </div>
-      )}
-    </>
-  );
+function formatDuration(sec?: number) {
+  if (!sec) return "";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmilePlus } from "lucide-react";
 
-export const ALLOWED_REACTIONS = ["❤️", "🥰", "😘", "😭", "🌸", "✨"];
+export const ALLOWED_REACTIONS = ["❤️", "🥹", "😘", "🔥", "😍", "😂", "😭", "👍", "✨", "🌸"];
 
 interface ReactionPickerProps {
   onReact: (emoji: string) => void;

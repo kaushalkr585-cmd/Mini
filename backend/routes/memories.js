@@ -31,6 +31,42 @@ router.post('/upload', auth, upload.array('files', 20), async (req, res) => {
     const urls = req.files.map(f => f.path);
     const publicIds = req.files.map(f => f.filename);
 
+    let duration = 0;
+    let resolution = '';
+    
+    if (isVideo) {
+      try {
+        const fileInfo = req.files[0];
+        const result = fileInfo.cloudinary || fileInfo.info || fileInfo.api_res;
+        if (result && result.duration) {
+          duration = Math.round(result.duration);
+          resolution = `${result.width}x${result.height}`;
+        } else {
+          // Fallback: fetch resource metadata from Cloudinary API
+          const resource = await cloudinary.api.resource(publicIds[0], { resource_type: 'video' });
+          if (resource) {
+            duration = Math.round(resource.duration || 0);
+            resolution = `${resource.width || 0}x${resource.height || 0}`;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to retrieve video metadata:', err);
+      }
+    }
+
+    let tagsArray = [];
+    if (req.body.tags) {
+      try {
+        tagsArray = JSON.parse(req.body.tags);
+      } catch (e) {
+        if (typeof req.body.tags === 'string') {
+          tagsArray = req.body.tags.split(',').map(t => t.trim()).filter(Boolean);
+        }
+      }
+    } else if (tag) {
+      tagsArray = [tag];
+    }
+
     const memory = await Memory.create({
       title: title || req.files[0].originalname.replace(/\.[^.]+$/, ''),
       sub: sub || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
@@ -42,7 +78,10 @@ router.post('/upload', auth, upload.array('files', 20), async (req, res) => {
       publicId: publicIds[0],
       urls: urls, // Store all images
       publicIds: publicIds,
-      thumbnail: isVideo ? urls[0].replace('/upload/', '/upload/so_0,f_jpg/') : '',
+      thumbnail: isVideo ? urls[0].replace('/upload/', '/upload/c_limit,w_640,h_360,f_jpg,q_auto,so_0/') : '',
+      duration: isVideo ? duration : 0,
+      resolution: isVideo ? resolution : '',
+      tags: tagsArray,
       categoryId: categoryId || null,
       uploadedBy: req.user._id,
     });
@@ -95,16 +134,13 @@ router.post('/:id/react', auth, async (req, res) => {
     if (!emoji) return res.status(400).json({ error: 'Emoji required' });
 
     const userIdStr = req.user._id.toString();
-    const existingIndex = memory.reactions.findIndex(r => r.userId.toString() === userIdStr);
+    const existingIndex = memory.reactions.findIndex(
+      r => r.userId.toString() === userIdStr && r.emoji === emoji
+    );
 
     if (existingIndex > -1) {
-      if (memory.reactions[existingIndex].emoji === emoji) {
-        // Toggle off
-        memory.reactions.splice(existingIndex, 1);
-      } else {
-        // Change emoji
-        memory.reactions[existingIndex].emoji = emoji;
-      }
+      // Toggle off
+      memory.reactions.splice(existingIndex, 1);
     } else {
       // Add new
       memory.reactions.push({ userId: req.user._id, emoji });
@@ -135,10 +171,18 @@ router.patch('/:id/like', auth, async (req, res) => {
 // PATCH /api/memories/:id — edit title/tag
 router.patch('/:id', auth, async (req, res) => {
   try {
-    const { title, tag, sub, categoryId, location, notes } = req.body;
+    const { title, tag, sub, categoryId, location, notes, tags } = req.body;
+    let tagsArray = tags;
+    if (typeof tags === 'string') {
+      try {
+        tagsArray = JSON.parse(tags);
+      } catch (e) {
+        tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
+      }
+    }
     const memory = await Memory.findByIdAndUpdate(
       req.params.id,
-      { title, tag, sub, categoryId, location, notes },
+      { title, tag, sub, categoryId, location, notes, tags: tagsArray },
       { new: true }
     ).populate('uploadedBy', 'name role');
     req.io.emit('memory:updated', memory);

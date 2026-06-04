@@ -12,6 +12,9 @@ const memorySchema = new mongoose.Schema({
   urls: [{ type: String }],                      // Additional images
   publicIds: [{ type: String }],                 // Additional public_ids
   thumbnail: { type: String, default: '' },      // video poster / thumb
+  duration: { type: Number, default: 0 },         // video duration in seconds
+  resolution: { type: String, default: '' },      // video resolution (e.g. 1920x1080)
+  tags: { type: [String], default: [] },          // multiple tags support
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

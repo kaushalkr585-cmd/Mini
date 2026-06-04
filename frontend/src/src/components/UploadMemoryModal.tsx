@@ -102,13 +102,28 @@ export function UploadMemoryModal({ isOpen, onClose }: { isOpen: boolean; onClos
   const [location, setLocation] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [tag, setTag] = useState("Memory");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [showCreateCat, setShowCreateCat] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [compressProgress, setCompressProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  const handleAddTag = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const clean = tagInput.trim().replace(/^#/, "");
+      if (clean && !tags.includes(clean)) {
+        setTags([...tags, clean]);
+      }
+      setTagInput("");
+    }
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index));
+  };
 
   const addFiles = async (newFiles: File[]) => {
     const valid = newFiles.filter(f =>
@@ -145,7 +160,7 @@ export function UploadMemoryModal({ isOpen, onClose }: { isOpen: boolean; onClos
 
   const resetForm = () => {
     setFiles([]); setCompressedFiles([]); setTitle(""); setSub(""); setNotes("");
-    setLocation(""); setCategoryId(""); setTag("Memory"); setShowCreateCat(false);
+    setLocation(""); setCategoryId(""); setTag("Memory"); setTags([]); setTagInput(""); setShowCreateCat(false);
     setCompressing(false); setCompressProgress(0);
   };
 
@@ -160,7 +175,8 @@ export function UploadMemoryModal({ isOpen, onClose }: { isOpen: boolean; onClos
     formData.append("notes", notes);
     formData.append("location", location);
     formData.append("categoryId", categoryId);
-    formData.append("tag", tag);
+    formData.append("tag", tags[0] || "Memory");
+    formData.append("tags", JSON.stringify(tags));
     toUpload.forEach((file) => formData.append("files", file));
 
     try {
@@ -179,11 +195,13 @@ export function UploadMemoryModal({ isOpen, onClose }: { isOpen: boolean; onClos
   const totalCompressedSize = compressedFiles.reduce((a, f) => a + f.size, 0);
   const totalSaved = totalOriginalSize - totalCompressedSize;
 
+  if (!isOpen) return null;
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md dark"
         onClick={(e) => { if (e.target === e.currentTarget) { resetForm(); onClose(); } }}
       >
         <motion.div
@@ -318,6 +336,28 @@ export function UploadMemoryModal({ isOpen, onClose }: { isOpen: boolean; onClos
                     value={location} onChange={(e) => setLocation(e.target.value)}
                     className="w-full rounded-xl bg-black/20 px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
                     placeholder="e.g. Eiffel Tower"
+                  />
+                </div>
+              </div>
+
+              {/* Tags Input */}
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground uppercase tracking-wider">Tags</label>
+                <div className="flex flex-wrap gap-2 p-2 rounded-xl bg-black/20 border border-white/10 min-h-[46px] items-center">
+                  {tags.map((t, idx) => (
+                    <span key={idx} className="flex items-center gap-1 bg-primary/20 text-primary rounded-full px-2.5 py-1 text-xs font-semibold">
+                      #{t}
+                      <button type="button" onClick={() => handleRemoveTag(idx)} className="hover:text-rose transition-colors">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleAddTag}
+                    placeholder={tags.length === 0 ? "Type tag and press Enter…" : "Add tag…"}
+                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 py-1 text-white placeholder:text-muted-foreground/40"
                   />
                 </div>
               </div>

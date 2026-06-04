@@ -13,6 +13,8 @@ import { UploadMemoryModal } from "@/components/UploadMemoryModal";
 import { ReliveMemoriesSlideshow } from "@/components/ReliveMemoriesSlideshow";
 import { MemoryCollections } from "@/components/MemoryCollections";
 
+import { LoveNoteCard } from "@/components/LoveNoteCard";
+
 export const Route = createFileRoute("/")({
   component: Index,
 });
@@ -71,6 +73,12 @@ function Index() {
           onAddMemory={() => setIsUploadMemoryOpen(true)} 
           onReliveLatest={handleReliveLatest} 
         />
+        
+        {/* Customizable Homepage Love Note Card */}
+        <div className="mx-auto max-w-7xl px-6 mb-8 mt-2">
+          <LoveNoteCard />
+        </div>
+
         <div className="space-y-4">
           {collections.map((c) => (
             <MemoryRow 

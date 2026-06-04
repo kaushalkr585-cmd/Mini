@@ -41,6 +41,7 @@ app.use('/api/messages',   require('./routes/messages'));
 app.use('/api/spotify',    require('./routes/spotify'));
 app.use('/api/timeline',   require('./routes/timeline'));
 app.use('/api/letters',    require('./routes/letters'));
+app.use('/api/lovenote',   require('./routes/lovenote'));
 
 app.get('/', (_req, res) => res.send('MINI Backend 💖 Running'));
 

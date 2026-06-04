@@ -42,6 +42,7 @@ function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [showOptions, setShowOptions] = useState(false);
 
   // Search state
@@ -63,6 +64,18 @@ function ChatPage() {
   useEffect(() => {
     markMessagesSeen();
   }, [messages.length, markMessagesSeen]);
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showEmojiPicker]);
 
   // Scroll logic
   useEffect(() => {
@@ -164,9 +177,9 @@ function ChatPage() {
   };
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-background dark">
       {/* ── Fixed Sticky Header ── */}
-      <div className="absolute top-0 left-0 right-0 z-50 pt-safe bg-background/60 backdrop-blur-xl border-b border-white/5">
+      <div className="absolute top-0 left-0 right-0 z-50 pt-safe bg-background/60 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl px-4 py-3 flex items-center justify-between">
           
           {isSearching ? (
@@ -513,7 +526,26 @@ function ChatPage() {
             )}
           </AnimatePresence>
 
-          <div className="flex items-end gap-2 rounded-[24px] glass-strong p-2 shadow-cinema border border-white/5 relative">
+          {/* Emoji Picker + Input Bar — wrapped in relative so picker can float above bar */}
+          <div className="relative" ref={emojiPickerRef}>
+            {showEmojiPicker && (
+              <div className="absolute bottom-full right-0 z-[999] mb-3">
+                <div className="shadow-cinema rounded-[24px] overflow-hidden bg-neutral-900 border border-white/10">
+                  <EmojiPicker
+                    theme="dark"
+                    width={320}
+                    height={380}
+                    onEmojiClick={(e) => {
+                      setInput(prev => prev + e.emoji);
+                      setShowEmojiPicker(false);
+                      textareaRef.current?.focus();
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+          <div className="flex items-end gap-2 rounded-[24px] glass-strong p-2 shadow-cinema border border-white/5">
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             
             <button 
@@ -548,29 +580,12 @@ function ChatPage() {
               />
             </div>
             
-            <div className="relative">
-              <button 
-                onClick={() => { setShowGifPicker(false); setShowEmojiPicker(!showEmojiPicker); }}
-                className="rounded-full p-2.5 text-muted-foreground hover:bg-white/10 transition mb-0.5"
-              >
-                <Smile className="h-5 w-5" />
-              </button>
-              {showEmojiPicker && (
-                <div className="absolute bottom-full right-0 mb-4 z-50">
-                  <div className="fixed inset-0" onClick={() => setShowEmojiPicker(false)} />
-                  <div className="relative shadow-cinema rounded-[24px] overflow-hidden">
-                     <EmojiPicker 
-                       theme="dark" 
-                       onEmojiClick={(e) => {
-                         setInput(prev => prev + e.emoji);
-                         setShowEmojiPicker(false);
-                         textareaRef.current?.focus();
-                       }} 
-                     />
-                  </div>
-                </div>
-              )}
-            </div>
+            <button 
+              onClick={() => { setShowGifPicker(false); setShowEmojiPicker(!showEmojiPicker); }}
+              className="rounded-full p-2.5 text-muted-foreground hover:bg-white/10 transition mb-0.5"
+            >
+              <Smile className="h-5 w-5" />
+            </button>
 
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -582,8 +597,11 @@ function ChatPage() {
               <Send className="h-4 w-4 ml-0.5" />
             </motion.button>
           </div>
+          </div>{/* end relative emoji wrapper */}
         </div>
       </div>
+
+
     </div>
   );
 }
