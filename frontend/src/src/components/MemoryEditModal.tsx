@@ -101,7 +101,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" /> Date
@@ -110,7 +110,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                   type="text"
                   value={sub}
                   onChange={e => setSub(e.target.value)}
-                  className="w-full rounded-xl glass py-3 px-4 outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
+                  className="w-full rounded-xl glass py-3 px-4 min-h-[44px] outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
                   placeholder="e.g. Oct 14, 2025"
                 />
               </div>
@@ -122,13 +122,13 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                   type="text"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  className="w-full rounded-xl glass py-3 px-4 outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
+                  className="w-full rounded-xl glass py-3 px-4 min-h-[44px] outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
                   placeholder="Where was this?"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Folder (Category)
@@ -136,7 +136,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                 <select
                   value={categoryId || ""}
                   onChange={e => setCategoryId(e.target.value)}
-                  className="w-full rounded-xl glass py-3 px-4 outline-none focus:ring-1 focus:ring-primary/50 text-foreground [&>option]:bg-zinc-900"
+                  className="w-full rounded-xl glass py-3 px-4 min-h-[44px] outline-none focus:ring-1 focus:ring-primary/50 text-foreground [&>option]:bg-zinc-900"
                 >
                   <option value="">None</option>
                   {categories.map(c => (

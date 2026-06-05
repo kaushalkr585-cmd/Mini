@@ -8,6 +8,8 @@ import {
 import { useCoupleStore, Category, Memory } from "@/store/coupleStore";
 import { CustomVideoPlayer } from "./CustomVideoPlayer";
 import { compressFiles, formatBytes } from "@/lib/compress";
+import { useDeviceCapability } from "@/hooks/useDeviceCapability";
+import { releaseVideo } from "@/hooks/useVideoIntersection";
 import toast from "react-hot-toast";
 
 
@@ -331,7 +333,8 @@ function FullscreenViewer({
   );
 }
 
-// ─── Video card with thumbnail/duration overlay ───────────────────────────────
+// VideoCard: uses thumbnail image only — no <video> in the grid
+// The full video loads only when opened in the fullscreen viewer
 
 function formatDuration(sec?: number) {
   if (!sec) return "";
@@ -340,21 +343,35 @@ function formatDuration(sec?: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+
 function VideoCard({ memory, onClick }: { memory: Memory; onClick: () => void }) {
   const durationText = memory.duration ? formatDuration(memory.duration) : null;
+
+  // Build a thumbnail URL
+  const thumbnailUrl = memory.thumbnail
+    || (memory.url.includes('cloudinary.com')
+      ? memory.url.replace('/video/upload/', '/video/upload/c_limit,w_640,h_360,f_jpg,q_auto,so_0/')
+      : memory.url);
 
   return (
     <div className="relative w-full h-full overflow-hidden" onClick={onClick}>
       <img
-        src={memory.thumbnail || (memory.url.includes('cloudinary.com') ? memory.url.replace('/upload/', '/upload/c_limit,w_640,h_360,f_jpg,q_auto,so_0/') : memory.url)}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        src={thumbnailUrl}
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         alt={memory.title}
         loading="lazy"
+        decoding="async"
       />
       {/* Play overlay */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <div className="h-12 w-12 rounded-full glass-strong flex items-center justify-center shadow-glow">
+        <div className="h-11 w-11 rounded-full glass-strong flex items-center justify-center shadow-glow">
           <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
+        </div>
+      </div>
+      {/* Always-visible play icon */}
+      <div className="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+        <div className="h-9 w-9 rounded-full glass flex items-center justify-center">
+          <Play className="h-4 w-4 fill-white text-white translate-x-px" />
         </div>
       </div>
       {durationText && (
@@ -612,11 +629,11 @@ export function CategoryGallery({
             </div>
 
             {/* Gallery body */}
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-hidden">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-hidden">
               {catMemories.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col items-center justify-center h-full gap-6 text-center py-32"
+                  className="flex flex-col items-center justify-center h-full gap-6 text-center py-24"
                 >
                   <div className="rounded-full glass-strong p-8 shadow-glow">
                     <FolderOpen className="h-12 w-12 text-primary" />
@@ -627,48 +644,50 @@ export function CategoryGallery({
                   </div>
                   <button
                     onClick={() => setIsUploadOpen(true)}
-                    className="btn-primary flex items-center gap-2"
+                    className="btn-primary flex items-center gap-2 min-h-[44px]"
                   >
                     <Upload className="h-4 w-4" />
                     Upload Now
                   </button>
                 </motion.div>
               ) : (
-                /* Masonry-style grid using columns */
                 <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-3 space-y-3">
-                  {catMemories.map((m, i) => (
-                    <motion.div
-                      key={m._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: i * 0.03 }}
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      className="group relative break-inside-avoid overflow-hidden rounded-2xl shadow-cinema cursor-pointer"
-                      style={{ aspectRatio: i % 5 === 0 ? "3/4" : i % 3 === 0 ? "1/1" : "4/3" }}
-                      onClick={() => setViewerIndex(i)}
-                    >
-                      {m.type === "video" ? (
-                        <VideoCard memory={m} onClick={() => setViewerIndex(i)} />
-                      ) : (
-                        <>
-                          <img
-                            src={m.url}
-                            alt={m.title}
-                            loading="lazy"
-                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center bg-black/30">
-                            <ZoomIn className="h-8 w-8 text-white drop-shadow-lg" />
-                          </div>
-                        </>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="absolute inset-x-0 bottom-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                        <p className="text-xs font-semibold text-white truncate">{m.title}</p>
-                        {m.sub && <p className="text-[10px] text-rose">{m.sub}</p>}
-                      </div>
-                    </motion.div>
-                  ))}
+                  {catMemories.map((m, i) => {
+                    const { isMobile } = { isMobile: typeof window !== 'undefined' && window.innerWidth < 428 };
+                    return (
+                      <motion.div
+                        key={m._id}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.4) }}
+                        className="group relative break-inside-avoid overflow-hidden rounded-xl shadow-cinema cursor-pointer memory-card-contain"
+                        style={{ aspectRatio: i % 5 === 0 ? "3/4" : i % 3 === 0 ? "1/1" : "4/3" }}
+                        onClick={() => setViewerIndex(i)}
+                      >
+                        {m.type === "video" ? (
+                          <VideoCard memory={m} onClick={() => setViewerIndex(i)} />
+                        ) : (
+                          <>
+                            <img
+                              src={m.url}
+                              alt={m.title}
+                              loading="lazy"
+                              decoding="async"
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center bg-black/30">
+                              <ZoomIn className="h-7 w-7 text-white drop-shadow-lg" />
+                            </div>
+                          </>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute inset-x-0 bottom-0 p-2.5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                          <p className="text-xs font-semibold text-white truncate">{m.title}</p>
+                          {m.sub && <p className="text-[10px] text-rose truncate">{m.sub}</p>}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </div>

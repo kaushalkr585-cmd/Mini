@@ -474,3 +474,156 @@
 .light .btn-glass-icon:hover {
   background: rgba(255, 255, 255, 0.70) !important;
 }
+
+/* ── Upload progress bar ────────────────────────────────────────── */
+.upload-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.upload-progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-glow));
+  transition: width 0.3s ease;
+}
+
+/* ── Mobile Performance Mode ─────────────────────────────────────
+   On narrow viewports (≤ 428 px / iPhone SE / small Androids) we
+   significantly reduce GPU-expensive backdrop-filter blur and
+   multi-layer shadows so the UI stays 60 fps.
+   The visual design is preserved — only the intensity is reduced.
+─────────────────────────────────────────────────────────────────── */
+@media (max-width: 428px) {
+  /* Reduce glass blur from 16px → 8px */
+  .liquid-glass, .glass {
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+  }
+  .light .liquid-glass, .light .glass {
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+  }
+
+  /* Reduce glass-strong blur from 50px → 20px */
+  .liquid-glass-strong, .glass-strong {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    /* Simplify multi-layer shadow to single layer */
+    box-shadow: 0 4px 20px rgba(255, 79, 216, 0.10), inset 0 1px 1px rgba(255,255,255,0.14);
+  }
+  .light .liquid-glass-strong, .light .glass-strong {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  /* Reduce modal blur from 40px → 20px */
+  .glass-modal {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 8px 32px rgba(255, 79, 216, 0.14), inset 0 1px 1px rgba(255,255,255,0.14);
+  }
+  .light .glass-modal {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  /* Reduce card-glass blur */
+  .glass-card, .card-glass {
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+  }
+
+  /* Simplify glow orb — remove expensive filter blur on mobile */
+  .glow-orb {
+    filter: blur(30px);
+  }
+
+  /* Reduce shadow-cinema multi-layer to single layer */
+  .shadow-cinema {
+    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ── Touch target enforcement (min 44×44 px) ─────────────────────
+   Applied to all interactive elements inside the Memories section.
+   Uses padding compensation so layout isn't disrupted.
+─────────────────────────────────────────────────────────────────── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure btn-glass-icon meets 44px on mobile */
+@media (max-width: 768px) {
+  .btn-glass-icon {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  .btn-primary {
+    min-height: 44px;
+  }
+  .btn-ghost {
+    min-height: 44px;
+  }
+}
+
+/* ── Memory card grid GPU containment ───────────────────────────── */
+/* Isolates painting of each card so the browser doesn't repaint the
+   entire grid when one card animates. */
+.memory-card-contain {
+  contain: layout style paint;
+  transform: translateZ(0); /* promote to own GPU layer */
+}
+
+/* ── Hover-only effects (skip on pure touch devices) ─────────────
+   Framer-motion whileHover effects are disabled via JS on mobile.
+   For CSS-only hover effects we guard with this media query.
+─────────────────────────────────────────────────────────────────── */
+@media (hover: none) {
+  /* On touch-only devices, always show the info overlay (no hover needed) */
+  .hover-reveal {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+  /* Don't scale cards on touch-scroll */
+  .hover-scale:hover {
+    transform: none !important;
+  }
+}
+
+/* ── Video player mobile simplification ─────────────────────────── */
+@media (max-width: 480px) {
+  /* Larger touch targets for video progress bar */
+  .video-progress-mobile {
+    height: 6px;
+    cursor: pointer;
+  }
+  /* Bigger play button on mobile */
+  .video-play-btn-mobile {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}
+
+/* ── Slideshow text safety ───────────────────────────────────────── */
+.slideshow-title {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  -webkit-line-clamp: 3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Prevent any horizontal scroll ─────────────────────────────── */
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+

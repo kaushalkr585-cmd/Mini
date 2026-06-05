@@ -4,12 +4,16 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, Gauge, Settings
 } from "lucide-react";
+import { useVideoIntersection, usePageVisibilityPause, releaseVideo } from "@/hooks/useVideoIntersection";
+import { useDeviceCapability } from "@/hooks/useDeviceCapability";
 
 interface CustomVideoPlayerProps {
   src: string;
   thumbnail?: string;
   className?: string;
   autoPlay?: boolean;
+  /** Called when video is paused/stopped — parent can use to coordinate multiple players */
+  onPause?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -30,18 +34,15 @@ export function getOptimizedVideoUrl(originalUrl: string, quality: '360p' | '720
   } else if (quality === '1080p') {
     transform = 'c_limit,w_1920,h_1080,q_auto,f_auto,vc_auto';
   } else {
-    // Auto resolution based on client network & screen size
+    // Auto — adaptive based on device + network
     const conn = (navigator as any).connection;
     const effectiveType = conn ? conn.effectiveType : '4g';
     const isSlow = effectiveType === 'slow-2g' || effectiveType === '2g' || effectiveType === '3g';
-    
     const width = window.innerWidth;
     const isMobile = width < 768;
     const isTablet = width >= 768 && width < 1024;
-    
-    if (isSlow) {
-      transform = 'c_limit,w_640,h_360,q_auto,f_auto,vc_auto';
-    } else if (isMobile) {
+
+    if (isSlow || isMobile) {
       transform = 'c_limit,w_640,h_360,q_auto,f_auto,vc_auto';
     } else if (isTablet) {
       transform = 'c_limit,w_1280,h_720,q_auto,f_auto,vc_auto';
@@ -55,15 +56,17 @@ export function getOptimizedVideoUrl(originalUrl: string, quality: '360p' | '720
   } else if (originalUrl.includes('/upload/')) {
     return originalUrl.replace('/upload/', `/upload/${transform}/`);
   }
-  
+
   return originalUrl;
 }
 
-export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = false }: CustomVideoPlayerProps) {
+export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = false, onPause }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const { isMobile, shouldReduceEffects } = useDeviceCapability();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -79,7 +82,18 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
   const [isLoading, setIsLoading] = useState(true);
   const [containerWidth, setContainerWidth] = useState(500);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(autoPlay);
+  const [showBigPlay, setShowBigPlay] = useState(!autoPlay);
 
+  // ── Hooks ──────────────────────────────────────────────────────────────────
+
+  // Auto-pause when out of viewport
+  useVideoIntersection(videoRef, { threshold: 0.1, autoPlayOnEnter: false });
+
+  // Pause on tab hide
+  usePageVisibilityPause(videoRef);
+
+  // ── Container width tracking ───────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
@@ -91,6 +105,15 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
     return () => observer.disconnect();
   }, []);
 
+  // ── Cleanup on unmount — release video resources ───────────────────────────
+  useEffect(() => {
+    return () => {
+      releaseVideo(videoRef.current);
+      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
+    };
+  }, []);
+
+  // ── Hide controls timer ────────────────────────────────────────────────────
   const speeds = [0.5, 1, 1.5, 2];
 
   const resetHideTimer = useCallback(() => {
@@ -102,44 +125,54 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
   }, [isPlaying, isScrubbing]);
 
   useEffect(() => {
-    return () => { if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current); };
-  }, []);
-
-  useEffect(() => {
-    if (!isPlaying) { setShowControls(true); if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current); }
-    else { resetHideTimer(); }
+    if (!isPlaying) {
+      setShowControls(true);
+      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
+    } else {
+      resetHideTimer();
+    }
   }, [isPlaying, resetHideTimer]);
 
-  const togglePlay = () => {
+  // ── Play/Pause ─────────────────────────────────────────────────────────────
+  const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
+
+    // First interaction: set src and load before playing (lazy loading)
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+      setShowBigPlay(false);
+    }
+
     if (v.paused) {
       v.play().catch(console.error);
     } else {
       v.pause();
+      onPause?.();
     }
-  };
+  }, [hasUserInteracted, onPause]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = !v.muted;
     setIsMuted(v.muted);
-  };
+  }, []);
 
-  const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVolume = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
     if (videoRef.current) { videoRef.current.volume = val; videoRef.current.muted = val === 0; }
     setIsMuted(val === 0);
-  };
+  }, []);
 
-  const handleSkip = (seconds: number) => {
+  const handleSkip = useCallback((seconds: number) => {
     const v = videoRef.current;
     if (!v) return;
     v.currentTime = Math.max(0, Math.min(v.duration, v.currentTime + seconds));
-  };
+  }, []);
 
+  // ── Scrubbing (mouse + touch) ──────────────────────────────────────────────
   const seekToPosition = useCallback((clientX: number) => {
     const rect = progressRef.current?.getBoundingClientRect();
     if (!rect || !videoRef.current || duration === 0) return;
@@ -148,68 +181,82 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
     setCurrentTime(ratio * duration);
   }, [duration]);
 
-  const handleProgressMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setIsScrubbing(true);
     seekToPosition(e.clientX);
-  };
+  }, [seekToPosition]);
 
-  useEffect(() => {
+  const handleProgressPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!isScrubbing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      seekToPosition(e.clientX);
-    };
-
-    const handleMouseUp = () => {
-      setIsScrubbing(false);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
+    seekToPosition(e.clientX);
   }, [isScrubbing, seekToPosition]);
 
-  const handleSpeed = (speed: number) => {
+  const handleProgressPointerUp = useCallback(() => {
+    setIsScrubbing(false);
+  }, []);
+
+  // ── Speed / Quality ────────────────────────────────────────────────────────
+  const handleSpeed = useCallback((speed: number) => {
     setPlaybackSpeed(speed);
     if (videoRef.current) videoRef.current.playbackRate = speed;
     setShowSpeedMenu(false);
-  };
+  }, []);
 
-  const handleQualityChange = (q: '360p' | '720p' | '1080p' | 'auto') => {
+  const handleQualityChange = useCallback((q: '360p' | '720p' | '1080p' | 'auto') => {
     setSelectedQuality(q);
     setShowQualityMenu(false);
-    
     const v = videoRef.current;
     if (v) {
       const time = v.currentTime;
       const wasPlaying = !v.paused;
-      
       const handleLoaded = () => {
         v.currentTime = time;
-        if (wasPlaying) {
-          v.play().catch(console.error);
-        }
+        if (wasPlaying) v.play().catch(console.error);
         v.removeEventListener('loadedmetadata', handleLoaded);
       };
       v.addEventListener('loadedmetadata', handleLoaded);
     }
-  };
+  }, []);
 
-  const toggleFullscreen = async () => {
+  // ── Fullscreen ─────────────────────────────────────────────────────────────
+  const toggleFullscreen = useCallback(async () => {
     const el = containerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) { await el.requestFullscreen(); setIsFullscreen(true); }
-    else { await document.exitFullscreen(); setIsFullscreen(false); }
-  };
+    if (!document.fullscreenElement) {
+      await el.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  }, []);
 
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  // ── Derived values ─────────────────────────────────────────────────────────
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
   const videoSrc = useMemo(() => {
+    if (!hasUserInteracted) return ''; // Don't load until user taps
     return getOptimizedVideoUrl(src, selectedQuality);
-  }, [src, selectedQuality]);
+  }, [src, selectedQuality, hasUserInteracted]);
+
+  // When autoPlay is true, set hasUserInteracted immediately
+  useEffect(() => {
+    if (autoPlay) {
+      setHasUserInteracted(true);
+      setShowBigPlay(false);
+    }
+  }, [autoPlay]);
+
+  // ── Compact mobile controls (< 360px wide) ─────────────────────────────────
+  const isCompact = containerWidth < 360;
 
   return (
     <div
@@ -217,48 +264,65 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
       className={`relative overflow-hidden rounded-2xl bg-black group select-none flex items-center justify-center ${className}`}
       onMouseMove={resetHideTimer}
       onMouseEnter={resetHideTimer}
+      onTouchStart={resetHideTimer}
       onClick={togglePlay}
       style={{ transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
-      {/* Video element */}
+      {/* Video element — lazy: src only set after first interaction */}
       <video
         ref={videoRef}
-        src={videoSrc}
+        src={videoSrc || undefined}
         poster={thumbnail}
         className="max-w-full max-h-full object-contain"
         autoPlay={autoPlay}
-        preload="auto"
+        preload="metadata"
         onTimeUpdate={() => { if (!isScrubbing) setCurrentTime(videoRef.current?.currentTime || 0); }}
         onDurationChange={() => setDuration(videoRef.current?.duration || 0)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={() => { setIsPlaying(true); setShowBigPlay(false); }}
+        onPause={() => { setIsPlaying(false); onPause?.(); }}
         onWaiting={() => setIsLoading(true)}
         onCanPlay={() => setIsLoading(false)}
         onLoadedData={() => setIsLoading(false)}
         playsInline
       />
 
+      {/* Pre-interaction: Big play poster */}
+      {showBigPlay && thumbnail && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <img
+            src={thumbnail}
+            alt="Video thumbnail"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="relative z-10 h-16 w-16 rounded-full glass-strong flex items-center justify-center shadow-glow">
+            <Play className="h-7 w-7 fill-white text-white translate-x-0.5" />
+          </div>
+        </div>
+      )}
+
       {/* Loading spinner */}
       <AnimatePresence>
-        {isLoading && (
+        {isLoading && hasUserInteracted && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
           >
-            <div className="h-12 w-12 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Big play button in center when paused */}
+      {/* Big play button when paused (after first interaction) */}
       <AnimatePresence>
-        {!isPlaying && !isLoading && (
+        {!isPlaying && !isLoading && hasUserInteracted && !showBigPlay && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: shouldReduceEffects ? 0.1 : 0.2 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
           >
-            <div className="h-20 w-20 rounded-full glass-strong flex items-center justify-center shadow-glow">
-              <Play className="h-8 w-8 fill-white text-white translate-x-0.5" />
+            <div className="h-16 w-16 rounded-full glass-strong flex items-center justify-center shadow-glow">
+              <Play className="h-7 w-7 fill-white text-white translate-x-0.5" />
             </div>
           </motion.div>
         )}
@@ -266,37 +330,41 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
 
       {/* Controls overlay */}
       <AnimatePresence>
-        {showControls && (
+        {showControls && hasUserInteracted && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-x-0 bottom-0 video-controls-gradient p-4 z-20"
+            className="absolute inset-x-0 bottom-0 video-controls-gradient p-3 z-20"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
           >
-            {/* Progress bar with drag support */}
+            {/* Progress bar — pointer events for touch scrubbing */}
             <div
               ref={progressRef}
-              className="relative h-2.5 w-full cursor-pointer rounded-full bg-white/20 mb-3 group/prog flex items-center"
-              onMouseDown={handleProgressMouseDown}
+              className="relative h-3 w-full cursor-pointer rounded-full bg-white/20 mb-2 flex items-center"
+              onPointerDown={handleProgressPointerDown}
+              onPointerMove={handleProgressPointerMove}
+              onPointerUp={handleProgressPointerUp}
+              style={{ touchAction: 'none' }}
             >
               <div
-                className="absolute left-0 top-0 h-full rounded-full bg-primary transition-all"
+                className="absolute left-0 top-0 h-full rounded-full bg-primary"
                 style={{ width: `${progress}%` }}
               />
               <div
-                className="absolute h-4 w-4 rounded-full bg-primary shadow-glow transition-all -translate-x-1/2"
-                style={{ left: `${progress}%`, opacity: isScrubbing ? 1 : undefined }}
+                className="absolute h-4 w-4 rounded-full bg-primary shadow-glow -translate-x-1/2 transition-transform"
+                style={{ left: `${progress}%` }}
               />
             </div>
 
-            {/* Bottom controls row */}
-            <div className="flex items-center gap-2">
-              {/* Skip back */}
-              {containerWidth >= 320 && (
+            {/* Controls row */}
+            <div className="flex items-center gap-1.5">
+              {/* Skip back — hide on very compact */}
+              {!isCompact && (
                 <button
-                  onClick={() => handleSkip(-10)}
-                  className="rounded-full p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition"
-                  title="Skip back 10s"
+                  onClick={(e) => { e.stopPropagation(); handleSkip(-10); }}
+                  className="rounded-full p-2 text-white/70 hover:text-white hover:bg-white/10 transition touch-target"
+                  aria-label="Skip back 10s"
                 >
                   <SkipBack className="h-4 w-4" />
                 </button>
@@ -304,33 +372,41 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
 
               {/* Play/Pause */}
               <button
-                onClick={togglePlay}
-                className="rounded-full bg-primary p-2 text-primary-foreground shadow-glow hover:scale-110 transition"
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                className="rounded-full bg-primary p-2 text-primary-foreground shadow-glow hover:scale-110 transition touch-target"
+                aria-label={isPlaying ? "Pause" : "Play"}
               >
-                {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current translate-x-px" />}
+                {isPlaying
+                  ? <Pause className="h-4 w-4 fill-current" />
+                  : <Play  className="h-4 w-4 fill-current translate-x-px" />
+                }
               </button>
 
               {/* Skip forward */}
-              {containerWidth >= 320 && (
+              {!isCompact && (
                 <button
-                  onClick={() => handleSkip(10)}
-                  className="rounded-full p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition"
-                  title="Skip forward 10s"
+                  onClick={(e) => { e.stopPropagation(); handleSkip(10); }}
+                  className="rounded-full p-2 text-white/70 hover:text-white hover:bg-white/10 transition touch-target"
+                  aria-label="Skip forward 10s"
                 >
                   <SkipForward className="h-4 w-4" />
                 </button>
               )}
 
               {/* Time display */}
-              <span className="ml-1 text-xs text-white/70 tabular-nums">
+              <span className="ml-1 text-xs text-white/70 tabular-nums shrink-0">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
 
-              <div className="ml-auto flex items-center gap-2">
-                {/* Volume */}
-                {containerWidth >= 380 && (
-                  <div className="flex items-center gap-1.5 group/vol">
-                    <button onClick={toggleMute} className="rounded-full p-1.5 text-white/70 hover:text-white transition">
+              <div className="ml-auto flex items-center gap-1.5">
+                {/* Volume — desktop only */}
+                {containerWidth >= 380 && !isMobile && (
+                  <div className="flex items-center gap-1 group/vol">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                      className="rounded-full p-1.5 text-white/70 hover:text-white transition touch-target"
+                      aria-label={isMuted ? "Unmute" : "Mute"}
+                    >
                       {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </button>
                     <div className="w-0 overflow-hidden group-hover/vol:w-16 transition-all duration-300">
@@ -339,18 +415,30 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
                         value={isMuted ? 0 : volume}
                         onChange={handleVolume}
                         className="video-volume-slider w-16 h-1.5 accent-primary cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Video quality switcher */}
-                {containerWidth >= 380 && (
+                {/* Mute-only button on mobile */}
+                {isMobile && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                    className="rounded-full p-1.5 text-white/70 hover:text-white transition touch-target"
+                    aria-label={isMuted ? "Unmute" : "Mute"}
+                  >
+                    {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+                )}
+
+                {/* Quality switcher — hide on mobile / compact */}
+                {containerWidth >= 400 && !isMobile && (
                   <div className="relative">
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowQualityMenu(q => !q); setShowSpeedMenu(false); }}
-                      className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-white/70 hover:text-white hover:bg-white/10 transition border border-white/10"
-                      title="Video Quality"
+                      className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white/70 hover:text-white hover:bg-white/10 transition border border-white/10"
+                      aria-label="Video quality"
                     >
                       <Settings className="h-3.5 w-3.5" />
                       <span>{selectedQuality === 'auto' ? 'Auto' : selectedQuality}</span>
@@ -378,13 +466,13 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
                   </div>
                 )}
 
-                {/* Playback speed */}
-                {containerWidth >= 440 && (
+                {/* Speed — desktop only */}
+                {containerWidth >= 460 && !isMobile && (
                   <div className="relative">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setShowSpeedMenu((s) => !s); setShowQualityMenu(false); }}
+                      onClick={(e) => { e.stopPropagation(); setShowSpeedMenu(s => !s); setShowQualityMenu(false); }}
                       className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-white/70 hover:text-white hover:bg-white/10 transition border border-white/10"
-                      title="Playback Speed"
+                      aria-label="Playback speed"
                     >
                       <Gauge className="h-3.5 w-3.5" />
                       <span>{playbackSpeed}x</span>
@@ -414,9 +502,9 @@ export function CustomVideoPlayer({ src, thumbnail, className = "", autoPlay = f
 
                 {/* Fullscreen */}
                 <button
-                  onClick={toggleFullscreen}
-                  className="rounded-full p-1.5 text-white/70 hover:text-white transition"
-                  title="Toggle fullscreen"
+                  onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                  className="rounded-full p-1.5 text-white/70 hover:text-white transition touch-target"
+                  aria-label="Toggle fullscreen"
                 >
                   {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                 </button>

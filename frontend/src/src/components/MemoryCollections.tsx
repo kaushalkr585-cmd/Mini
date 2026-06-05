@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { FolderOpen, Image, Video, ChevronRight, Layers, Edit2, Trash2, X, Check } from "lucide-react";
 import { useCoupleStore, Category } from "@/store/coupleStore";
 import { CategoryGallery } from "./CategoryGallery";
+import { useDeviceCapability } from "@/hooks/useDeviceCapability";
 import toast from "react-hot-toast";
 
 
@@ -175,6 +176,7 @@ function DeleteCategoryModal({
 
 export function MemoryCollections() {
   const { categories, memories } = useCoupleStore();
+  const { isMobile, shouldReduceEffects } = useDeviceCapability();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Category | null>(null);
@@ -215,12 +217,12 @@ export function MemoryCollections() {
               return (
                 <motion.div
                   key={cat._id}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={{ y: -8, scale: 1.03 }}
-                  className="group relative cursor-pointer overflow-hidden rounded-2xl shadow-cinema"
+                  transition={{ duration: 0.45, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={isMobile ? undefined : { y: -6, scale: 1.02 }}
+                  className="group relative cursor-pointer overflow-hidden rounded-2xl shadow-cinema memory-card-contain"
                   style={{ aspectRatio: "3/4" }}
                   onClick={() => openCategory(cat)}
                 >
@@ -245,19 +247,25 @@ export function MemoryCollections() {
                     style={{ background: "radial-gradient(circle at 50% 80%, oklch(0.72 0.32 350 / 0.3), transparent 70%)" }}
                   />
 
-                  {/* Edit + Delete actions — top right, revealed on hover */}
-                  <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0 z-10">
+                  {/* Edit + Delete — hover on desktop, always visible on mobile */}
+                  <div className={`absolute top-2.5 right-2.5 flex flex-col gap-1.5 transition-all duration-300 z-10 ${
+                    isMobile
+                      ? 'opacity-100 translate-y-0'
+                      : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'
+                  }`}>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditTarget(cat); }}
-                      className="btn-glass-icon !w-7 !h-7"
+                      className="btn-glass-icon !w-8 !h-8 min-w-[32px] min-h-[32px]"
                       title="Edit category"
+                      aria-label="Edit category"
                     >
                       <Edit2 className="h-3 w-3" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(cat); }}
-                      className="btn-glass-icon !w-7 !h-7 hover:!border-rose/50 hover:!bg-rose/10"
+                      className="btn-glass-icon !w-8 !h-8 min-w-[32px] min-h-[32px] hover:!border-rose/50 hover:!bg-rose/10"
                       title="Delete category"
+                      aria-label="Delete category"
                     >
                       <Trash2 className="h-3 w-3 text-rose" />
                     </button>
