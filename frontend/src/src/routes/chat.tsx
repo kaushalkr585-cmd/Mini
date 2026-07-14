@@ -45,6 +45,10 @@ function ChatPage() {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [showOptions, setShowOptions] = useState(false);
 
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Track how many messages existed when we first loaded.
   // Messages at or after this index are "new" and get entrance animation;
   // messages before it are historical and should render instantly.
@@ -61,10 +65,6 @@ function ChatPage() {
       initialMsgCountRef.current = messages.length;
     }
   }, [messages.length]);
-
-  // Search state
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleClearChat = async () => {
     if (window.confirm("Are you sure you want to permanently delete ALL messages for both of you? This cannot be undone.")) {
