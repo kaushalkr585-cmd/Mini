@@ -1,25 +1,24 @@
 import { useState, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Play, Plus, CheckCircle2, Zap, Clock, Wifi, ChevronDown } from "lucide-react";
+import { X, Upload, Play, Plus, Clock, Wifi, ChevronDown } from "lucide-react";
 import { useCoupleStore } from "@/store/coupleStore";
-import { compressFiles, compressVideo, formatBytes, uploadWithProgress, uploadDirectToCloudinary, UploadProgressInfo } from "@/lib/compress";
+import { formatBytes, uploadWithProgress, uploadDirectToCloudinary, UploadProgressInfo } from "@/lib/compress";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
 // ─── File preview thumbnail ───────────────────────────────────────────────────
 
+// ─── File preview thumbnail ───────────────────────────────────────────────────
+
 const FileThumb = memo(function FileThumb({
   file,
-  compressed,
   onRemove,
 }: {
   file: File;
-  compressed?: File;
   onRemove: () => void;
 }) {
   const isVideo = file.type.startsWith("video/");
   const url = URL.createObjectURL(file);
-  const saved = compressed && compressed !== file ? file.size - compressed.size : 0;
 
   return (
     <div className="relative h-20 w-20 flex-none rounded-xl overflow-hidden group/thumb">
@@ -31,12 +30,6 @@ const FileThumb = memo(function FileThumb({
         </div>
       ) : (
         <img src={url} className="h-full w-full object-cover" alt="preview" loading="lazy" />
-      )}
-      {saved > 1024 && (
-        <div className="absolute bottom-1 left-1 rounded-full bg-emerald-500/80 px-1 py-0.5 text-[8px] text-white font-bold flex items-center gap-0.5">
-          <CheckCircle2 className="h-2 w-2" />
-          -{formatBytes(saved)}
-        </div>
       )}
       <button
         type="button"
@@ -146,7 +139,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
 }) {
   const { fetchMemories, fetchCategories, categories } = useCoupleStore();
   const [files, setFiles] = useState<File[]>([]);
-  const [compressedFiles, setCompressedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
   const [sub, setSub] = useState("");
   const [notes, setNotes] = useState("");
@@ -156,11 +148,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
   const [tagInput, setTagInput] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [showCreateCat, setShowCreateCat] = useState(false);
-
-  // Compression state
-  const [compressing, setCompressing] = useState(false);
-  const [compressProgress, setCompressProgress] = useState(0);
-  const [compressPhase, setCompressPhase] = useState<'image' | 'video' | null>(null);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
@@ -180,7 +167,7 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
 
   const handleRemoveTag = (index: number) => setTags(tags.filter((_, i) => i !== index));
 
-  const addFiles = useCallback(async (newFiles: File[]) => {
+  const addFiles = useCallback((newFiles: File[]) => {
     const valid = newFiles.filter(f =>
       f.type.match(/^(image\/(jpeg|jpg|png|webp|gif)|video\/(mp4|mov|webm))$/)
     );
@@ -188,41 +175,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
     if (!valid.length) return;
 
     setFiles(prev => [...prev, ...valid]);
-    setCompressing(true);
-    setCompressProgress(0);
-
-    // Separate images and videos for sequential processing with distinct phases
-    const images = valid.filter(f => !f.type.startsWith('video/'));
-    const videos = valid.filter(f => f.type.startsWith('video/'));
-
-    const compressed: File[] = [];
-
-    // Compress images
-    if (images.length > 0) {
-      setCompressPhase('image');
-      const imgResults = await compressFiles(images, (done, total) => {
-        setCompressProgress(Math.round((done / total) * (videos.length > 0 ? 50 : 100)));
-      });
-      compressed.push(...imgResults);
-    }
-
-    // Compress large videos
-    if (videos.length > 0) {
-      setCompressPhase('video');
-      for (let i = 0; i < videos.length; i++) {
-        const result = await compressVideo(videos[i], (pct) => {
-          const base = images.length > 0 ? 50 : 0;
-          const perVideo = (100 - base) / videos.length;
-          setCompressProgress(Math.round(base + i * perVideo + (pct / 100) * perVideo));
-        });
-        compressed.push(result);
-      }
-    }
-
-    setCompressedFiles(prev => [...prev, ...compressed]);
-    setCompressing(false);
-    setCompressPhase(null);
-    setCompressProgress(0);
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,7 +183,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
-    setCompressedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -241,17 +192,14 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
   }, [addFiles]);
 
   const resetForm = useCallback(() => {
-    setFiles([]); setCompressedFiles([]); setTitle(""); setSub(""); setNotes("");
+    setFiles([]); setTitle(""); setSub(""); setNotes("");
     setLocation(""); setCategoryId(""); setTags([]); setTagInput(""); setShowCreateCat(false);
-    setCompressing(false); setCompressProgress(0); setUploadProgress(null); setUploading(false);
+    setUploadProgress(null); setUploading(false);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (files.length === 0) return toast.error("Please select at least one file");
-    if (compressing) return toast.error("Wait for optimization to complete");
-
-    const toUpload = compressedFiles.length === files.length ? compressedFiles : files;
 
     setUploading(true);
     abortRef.current = new AbortController();
@@ -268,9 +216,9 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
       }
 
       if (signatureData) {
-        // 2. Upload files directly to Cloudinary (bypassing Render's 30s timeout)
+        // 2. Upload original files directly to Cloudinary (bypassing Render's 30s timeout)
         const preUploadedFiles = await uploadDirectToCloudinary(
-          toUpload,
+          files,
           signatureData,
           (info) => setUploadProgress(info),
           abortRef.current.signal
@@ -297,7 +245,7 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
         formData.append("categoryId", categoryId);
         formData.append("tag", tags[0] || "Memory");
         formData.append("tags", JSON.stringify(tags));
-        toUpload.forEach((file) => formData.append("files", file));
+        files.forEach((file) => formData.append("files", file));
 
         const token = localStorage.getItem('nishy_token') || '';
         const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '');
@@ -371,22 +319,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
             </button>
           </div>
 
-          {/* Compression progress */}
-          {compressing && (
-            <div className="px-5 pt-3 flex-none">
-              <div className="flex items-center gap-2 mb-1">
-                <Zap className="h-3.5 w-3.5 text-primary animate-pulse" />
-                <span className="text-xs text-muted-foreground">
-                  {compressPhase === 'video' ? 'Compressing video…' : 'Optimizing images…'}
-                </span>
-                <span className="text-xs text-primary font-semibold ml-auto">{compressProgress}%</span>
-              </div>
-              <div className="upload-progress-bar">
-                <div className="upload-progress-bar-fill" style={{ width: `${compressProgress}%` }} />
-              </div>
-            </div>
-          )}
-
           {/* Upload progress */}
           {uploading && uploadProgress && (
             <div className="px-5 pt-3 flex-none">
@@ -429,7 +361,7 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
                 <div className="space-y-3">
                   <div className="flex gap-3 flex-wrap">
                     {files.map((file, i) => (
-                      <FileThumb key={i} file={file} compressed={compressedFiles[i]} onRemove={() => removeFile(i)} />
+                      <FileThumb key={i} file={file} onRemove={() => removeFile(i)} />
                     ))}
                     <button
                       type="button" onClick={() => fileInputRef.current?.click()}
@@ -439,12 +371,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
                       <Plus className="h-5 w-5" />
                     </button>
                   </div>
-                  {totalSaved > 10240 && !compressing && (
-                    <div className="flex items-center gap-2 text-xs text-emerald-400">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>Saved {formatBytes(totalSaved)} · ({formatBytes(totalOriginalSize)} → {formatBytes(totalCompressedSize)})</span>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -546,8 +472,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
             <p className="text-xs text-muted-foreground truncate">
               {uploading
                 ? `Uploading ${files.length} file${files.length > 1 ? 's' : ''}…`
-                : compressing
-                ? "Optimizing…"
                 : files.length > 0
                 ? `${files.length} file${files.length > 1 ? 's' : ''} ready`
                 : "No files selected"}
@@ -562,10 +486,10 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
               </button>
               <button
                 form="upload-form" type="submit"
-                disabled={uploading || files.length === 0 || compressing}
+                disabled={uploading || files.length === 0}
                 className="btn-primary min-w-[120px]"
               >
-                {uploading ? "Uploading…" : compressing ? "Optimizing…" : "Save Memory ♥"}
+                {uploading ? "Uploading…" : "Save Memory ♥"}
               </button>
             </div>
           </div>
