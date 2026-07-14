@@ -280,10 +280,6 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
     }
   };
 
-  const totalOriginalSize   = files.reduce((a, f) => a + f.size, 0);
-  const totalCompressedSize = compressedFiles.reduce((a, f) => a + f.size, 0);
-  const totalSaved          = totalOriginalSize - totalCompressedSize;
-
   if (!isOpen) return null;
 
   return (
