@@ -46,12 +46,10 @@ export function LoveNoteCard() {
 
   return (
     <>
+      {/* CSS entrance — runs immediately on compositor thread, no 1s Framer delay */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
         whileHover={{ y: -4 }}
-        className={`relative overflow-hidden rounded-3xl p-8 sm:p-12 ${bgStyle}`}
+        className={`relative overflow-hidden rounded-3xl p-8 sm:p-12 anim-enter-up ${bgStyle}`}
       >
         {/* Ambient glow — uses radial-gradient instead of filter:blur to avoid
             creating expensive GPU compositing layers */}

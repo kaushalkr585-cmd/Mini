@@ -62,7 +62,27 @@
     from { transform: translateX(0); }
     to { transform: translateX(-50%); }
   }
-}
+
+  /* ── Lightweight CSS entrance animations ─────────────────────────
+     These run on the compositor thread without waiting for JS to parse.
+     Use instead of Framer Motion for critical above-the-fold elements. */
+  @keyframes enter-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes enter-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes enter-scale {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  /* CSS-only gentle pulse — replaces JS-driven Framer Motion infinite loop */
+  @keyframes heart-pulse {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.12); }
+  }
 
 /* DARK MODE — cinematic Netflix black + neon pink */
 :root {
@@ -195,6 +215,39 @@
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+}
+
+/* ── CSS entrance animation utility classes ─────────────────────
+   Applied directly to DOM elements — start immediately on paint,
+   no JS parse time required. Compositor-thread only (transform+opacity). */
+.anim-enter-up {
+  animation: enter-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-enter-fade {
+  animation: enter-fade 0.5s ease both;
+}
+.anim-enter-scale {
+  animation: enter-scale 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-heart-pulse {
+  animation: heart-pulse 2.5s ease-in-out infinite;
+}
+/* Staggered delays for sequences */
+.anim-delay-100 { animation-delay: 0.1s; }
+.anim-delay-200 { animation-delay: 0.2s; }
+.anim-delay-300 { animation-delay: 0.3s; }
+.anim-delay-400 { animation-delay: 0.4s; }
+
+/* New chat message entrance — applied only to genuinely new messages (not history) */
+.msg-appear {
+  animation: enter-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Honor prefers-reduced-motion — skip all entrance motion */
+@media (prefers-reduced-motion: reduce) {
+  .anim-enter-up, .anim-enter-fade, .anim-enter-scale, .anim-heart-pulse, .msg-appear {
+    animation: none;
+  }
 }
 
 .liquid-glass, .glass {
@@ -566,9 +619,12 @@
 }
 
 /* ── GPU Compositing Hint for Memory Cards ────────────────────── */
-/* Prevents layout/paint invalidation within the card grid */
+/* will-change is applied only on hover to avoid creating compositor layers
+   for ALL cards simultaneously (which drains GPU memory on mobile) */
 .memory-card-contain {
   contain: layout style paint;
+}
+.memory-card-contain:hover {
   will-change: transform;
 }
 

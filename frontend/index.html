@@ -14,13 +14,103 @@
     <!-- Preconnect for Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      display=optional: browser falls back to system font instantly if Inter/Playfair
+      aren't cached — eliminates FOIT (Flash of Invisible Text) and render blocking.
+      Caveat / Cinzel / Great Vibes are only needed inside LoveNoteCard (rarely open),
+      so they are loaded lazily via a separate non-blocking link below.
+    -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Caveat:wght@400;700&family=Cinzel:wght@400;700&family=Great+Vibes&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=optional"
     />
+    <!-- Decorative fonts — loaded async, not render-blocking -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Cinzel:wght@400;700&family=Great+Vibes&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Cinzel:wght@400;700&family=Great+Vibes&display=swap"
+      />
+    </noscript>
+    <style>
+      /* ── Initial loading screen ─────────────────────────────────
+         Kept intentionally minimal:
+         - ONE animation (heart scale pulse) instead of three
+         - No filter: drop-shadow (GPU composite layer creation during parse)
+         - No spinner ring (saves a CSS animation + border-radius calc)
+         The loader is removed by React once hydration completes.       */
+      .initial-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: oklch(0.08 0.02 350);
+        background-image: linear-gradient(180deg, oklch(0.08 0.02 350), oklch(0.05 0.01 340));
+        z-index: 9999;
+        font-family: "Playfair Display", system-ui, serif;
+        color: #f0f0f0;
+      }
+      .loader-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+      }
+      .heart-svg {
+        width: 40px;
+        height: 40px;
+        /* Single animation — runs on compositor (transform only, no filter) */
+        animation: loader-heart-pulse 1.4s ease-in-out infinite;
+        /* color-based glow instead of filter: drop-shadow */
+        color: oklch(0.72 0.28 350);
+      }
+      .loader-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        background: linear-gradient(to right, oklch(0.78 0.22 350), oklch(0.65 0.3 0));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+        opacity: 0.9;
+      }
+      .loader-subtitle {
+        font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: oklch(0.7 0.04 340);
+        margin: 0;
+        opacity: 0.7;
+      }
+      /* Single keyframe — transform only → compositor thread, no layout/paint */
+      @keyframes loader-heart-pulse {
+        0%, 100% { transform: scale(1); opacity: 0.85; }
+        50%       { transform: scale(1.18); opacity: 1; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="initial-loader">
+        <div class="loader-content">
+          <!-- Heart SVG — no wrapper div, no spinner ring, no drop-shadow filter -->
+          <svg class="heart-svg" viewBox="0 0 24 24" fill="oklch(0.72 0.28 350)" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+          <h1 class="loader-title">MINI</h1>
+          <p class="loader-subtitle">Loading our private universe...</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

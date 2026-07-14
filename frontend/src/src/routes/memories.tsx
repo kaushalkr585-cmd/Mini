@@ -172,7 +172,7 @@ const MemoryCard = memo(function MemoryCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function MemoriesPage() {
-  const { memories, fetchMemories, categories, fetchCategories, deleteMemory, likeMemory } = useCoupleStore();
+  const { memories, fetchMemories, categories, fetchCategories, deleteMemory, likeMemory, loading } = useCoupleStore();
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [query, setQuery] = useState("");
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
@@ -308,7 +308,23 @@ function MemoriesPage() {
         </motion.div>
 
         {/* Memory grid */}
-        {filtered.length === 0 ? (
+        {loading && memories.length === 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div
+                key={n}
+                className="relative overflow-hidden rounded-2xl bg-white/5 border border-white/5 animate-pulse"
+                style={{ aspectRatio: "3/4" }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <div className="absolute bottom-3 inset-x-3 space-y-2">
+                  <div className="h-3 w-12 rounded bg-white/10" />
+                  <div className="h-4 w-3/4 rounded bg-white/15" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-muted-foreground">
             {query ? `No memories match "${query}"` : "No memories yet. Add your first one! ♥"}
           </div>

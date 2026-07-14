@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { Heart, Moon, Sun, Search, LogIn, Menu, X, Shield, LogOut } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
@@ -30,21 +30,18 @@ export function Navbar() {
 
   return (
     <>
-      <motion.header
-        initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed inset-x-0 top-0 z-50"
-      >
+      {/* CSS animation (anim-enter-up) runs immediately on paint — no JS parse delay */}
+      <header className="fixed inset-x-0 top-0 z-50 anim-enter-up">
         <div className="mx-auto mt-4 flex max-w-7xl items-center justify-between rounded-2xl glass-strong px-6 py-3 shadow-cinema">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <motion.div whileHover={{ rotate: -10, scale: 1.1 }} className="relative">
+            {/* CSS hover — no Framer Motion instance, no JS per route change */}
+            <div className="relative transition-transform duration-200 ease-out group-hover:-rotate-12 group-hover:scale-110">
               <Heart className="h-6 w-6 fill-primary text-primary" />
               <div className="absolute inset-0 blur-md opacity-60 group-hover:opacity-100 transition-opacity">
                 <Heart className="h-6 w-6 fill-primary text-primary" />
               </div>
-            </motion.div>
+            </div>
             <span className="font-display text-2xl font-bold tracking-tight text-gradient">MINI</span>
           </Link>
 
@@ -226,7 +223,7 @@ export function Navbar() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.header>
+      </header>
     </>
   );
 }

@@ -15,9 +15,30 @@ export function MusicPlayer() {
   const { currentTrack, isPlaying, togglePlay, nextTrack, prevTrack, token, fetchToken, volume, setPlayer } = useMusicStore();
   const player = useMusicStore(s => s.player);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const [localProgress, setLocalProgress] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
-  const prevTrackIdRef = useRef<string | null>(null);
+
+  // ── Ref-based progress tracking ──────────────────────────────────────
+  // Previously `localProgress` was React state, causing a full re-render +
+  // Framer Motion layout recalc every second while music plays.
+  // Now we track progress in a ref and mutate the progress bar DOM directly.
+  const progressRef = useRef(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const timeDisplayRef = useRef<HTMLSpanElement>(null);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor((ms || 0) / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  // Update progress bar DOM directly — no React setState, no re-render
+  const applyProgress = (ms: number, duration: number) => {
+    progressRef.current = ms;
+    const pct = duration ? Math.min((ms / duration) * 100, 100) : 0;
+    if (progressBarRef.current) progressBarRef.current.style.width = `${pct}%`;
+    if (timeDisplayRef.current) timeDisplayRef.current.textContent = formatTime(ms);
+  };
 
   useEffect(() => {
     fetchToken();
@@ -58,7 +79,8 @@ export function MusicPlayer() {
 
       p.addListener("player_state_changed", (state: any) => {
         if (!state) return;
-        setLocalProgress(state.position);
+        // Update DOM directly without setState
+        applyProgress(state.position, state.duration);
         useMusicStore.getState().updateProgress(state.position, state.duration);
         const storeState = useMusicStore.getState();
         if (state.paused !== !storeState.isPlaying) {
@@ -106,7 +128,7 @@ export function MusicPlayer() {
           if (deviceId && currentTrack && token) {
             fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
               method: "PUT",
-              body: JSON.stringify({ uris: [currentTrack.uri], position_ms: localProgress }),
+              body: JSON.stringify({ uris: [currentTrack.uri], position_ms: progressRef.current }),
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             }).catch(console.error);
           }
@@ -117,28 +139,25 @@ export function MusicPlayer() {
     }
   }, [isPlaying, player]);
 
-  // Simulate progress bar locally & auto-advance
+  // Tick progress bar every second — direct DOM mutation, no React setState
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaying && currentTrack) {
-      interval = setInterval(() => {
-        setLocalProgress(p => {
-          const np = p + 1000;
-          if (np >= currentTrack.duration_ms) {
-            useMusicStore.getState().nextTrack();
-            return 0;
-          }
-          useMusicStore.getState().updateProgress(np, currentTrack.duration_ms);
-          return np;
-        });
-      }, 1000);
-    }
+    if (!isPlaying || !currentTrack) return;
+    const interval = setInterval(() => {
+      const np = progressRef.current + 1000;
+      if (np >= currentTrack.duration_ms) {
+        useMusicStore.getState().nextTrack();
+        applyProgress(0, currentTrack.duration_ms);
+      } else {
+        applyProgress(np, currentTrack.duration_ms);
+        useMusicStore.getState().updateProgress(np, currentTrack.duration_ms);
+      }
+    }, 1000);
     return () => clearInterval(interval);
   }, [isPlaying, currentTrack]);
 
-  // Reset local progress on track change
+  // Reset progress on track change
   useEffect(() => {
-    setLocalProgress(0);
+    applyProgress(0, currentTrack?.duration_ms ?? 0);
   }, [currentTrack?.id]);
 
   const { history } = useRouter();
@@ -147,23 +166,12 @@ export function MusicPlayer() {
 
   if (!currentTrack || isMusicPage) return null;
 
-  const progressPercent = currentTrack.duration_ms
-    ? Math.min((localProgress / currentTrack.duration_ms) * 100, 100)
-    : 0;
-
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor((ms || 0) / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
-  };
-
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!currentTrack || !player) return;
     const bounds = e.currentTarget.getBoundingClientRect();
     const percentage = Math.max(0, Math.min(1, (e.clientX - bounds.left) / bounds.width));
     const newPos = percentage * currentTrack.duration_ms;
-    setLocalProgress(newPos);
+    applyProgress(newPos, currentTrack.duration_ms);
     player.seek(newPos);
   };
 
@@ -217,18 +225,22 @@ export function MusicPlayer() {
                   </p>
                 </motion.div>
               </AnimatePresence>
+              {/* Time display — updated via ref mutation, no React re-render */}
               <div className="text-[10px] text-muted-foreground font-medium flex-none pl-1">
-                {formatTime(localProgress)} / {formatTime(currentTrack.duration_ms)}
+                <span ref={timeDisplayRef}>{formatTime(0)}</span>
+                {" / "}
+                {formatTime(currentTrack.duration_ms)}
               </div>
             </div>
+            {/* Progress bar — plain div, width updated via ref mutation */}
             <div
               className="group relative mt-1.5 h-1.5 w-full cursor-pointer overflow-hidden rounded-full bg-muted transition-all hover:h-2"
               onClick={handleSeek}
             >
-              <motion.div
+              <div
+                ref={progressBarRef}
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent"
-                style={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.1, ease: "linear" }}
+                style={{ width: "0%", transition: "width 0.1s linear" }}
               />
             </div>
           </div>

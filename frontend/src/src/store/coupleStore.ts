@@ -145,6 +145,8 @@ interface CoupleState {
 
 // Module-level guard — prevents duplicate socket listeners on component remount
 let _socketInitialized = false;
+// Module-level typing debounce — prevents socket emit on every keystroke
+let _typingTimer = 0;
 
 export const useCoupleStore = create<CoupleState>((set, get) => ({
   partner: null,
@@ -494,9 +496,15 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
 
   emitTyping: () => {
     const socket = getSocket();
-    const { partner } = get();
-    // Assuming authStore has our user details but we just emit typing here
-    if (socket) socket.emit('user:typing', { isTyping: true });
+    if (!socket) return;
+    // Debounce: emit 'isTyping: true' at most once per 400ms.
+    // Clear the previous timer — if user is still typing, we reset.
+    // After 2.5s silence the timer fires and emits 'isTyping: false'.
+    clearTimeout(_typingTimer);
+    socket.emit('user:typing', { isTyping: true });
+    _typingTimer = window.setTimeout(() => {
+      socket.emit('user:typing', { isTyping: false });
+    }, 2500);
   },
 
   initSocketListeners: () => {

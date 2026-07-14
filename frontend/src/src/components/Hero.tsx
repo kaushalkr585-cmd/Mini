@@ -25,12 +25,8 @@ export function Hero({ onReliveLatest, onAddMemory }: { onReliveLatest?: () => v
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[80dvh] max-w-7xl flex-col justify-end px-4 sm:px-6 pb-16 sm:pb-20">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-2xl"
-        >
+        {/* CSS entrance — no JS parse delay. Framer Motion kept only for interactive hover/tap below */}
+        <div className="max-w-2xl anim-enter-up">
           <span className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs uppercase tracking-[0.3em] text-rose">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             Episode {daysTogether} · Together
@@ -68,7 +64,7 @@ export function Hero({ onReliveLatest, onAddMemory }: { onReliveLatest?: () => v
           <div className="mt-12 flex flex-wrap items-center gap-8 text-sm">
             <Counter value={daysTogether} label="Days Together" />
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -88,7 +84,7 @@ function Counter({ value, label }: { value: number; label: string }) {
     // Set initial value immediately to avoid flash of "0"
     el.textContent = "0";
     const controls = animate(0, value, {
-      duration: 2.5,
+      duration: 1.2,
       ease: "easeOut",
       onUpdate: (v) => {
         if (el) el.textContent = Math.floor(v).toLocaleString();

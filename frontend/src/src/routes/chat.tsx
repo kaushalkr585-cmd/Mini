@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { 
   Send, Phone, Video, Image as ImageIcon, Smile, 
   Lock, Check, CheckCheck, Edit2, Reply, Trash2, 
@@ -44,6 +44,23 @@ function ChatPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [showOptions, setShowOptions] = useState(false);
+
+  // Track how many messages existed when we first loaded.
+  // Messages at or after this index are "new" and get entrance animation;
+  // messages before it are historical and should render instantly.
+  const initialMsgCountRef = useRef<number | null>(null);
+  const displayMessages = useMemo(() => {
+    return searchQuery
+      ? messages.filter(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase()))
+      : messages;
+  }, [messages, searchQuery]);
+
+  // Record the initial count once on first data load
+  useEffect(() => {
+    if (initialMsgCountRef.current === null && messages.length > 0) {
+      initialMsgCountRef.current = messages.length;
+    }
+  }, [messages.length]);
 
   // Search state
   const [isSearching, setIsSearching] = useState(false);
@@ -290,18 +307,20 @@ function ChatPage() {
             <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest">End-to-end encrypted · Only for us</p>
           </div>
 
-          {(searchQuery ? messages.filter(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase())) : messages).map((msg, i, arr) => {
+          {displayMessages.map((msg, i, arr) => {
             const me = isMe(msg.from);
             const showAvatar = !me && (i === arr.length - 1 || arr[i + 1]?.from?._id !== msg.from?._id);
             const isDeleted = msg.isDeleted;
             const isSelected = selectedMessage === msg._id;
-            
+            // Only animate messages that arrived AFTER the initial page load
+            const isNewMsg = initialMsgCountRef.current !== null && i >= initialMsgCountRef.current;
+
             return (
-              <motion.div
+              <div
                 key={msg._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`group relative flex items-end gap-2 ${me ? "justify-end" : "justify-start"}`}
+                className={`group relative flex items-end gap-2 ${me ? "justify-end" : "justify-start"}${
+                  isNewMsg ? " msg-appear" : ""
+                }`}
               >
                 {!me && (
                   <div className={`mb-1 h-7 w-7 flex-none rounded-full overflow-hidden shadow-glow ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
@@ -439,7 +458,7 @@ function ChatPage() {
                   </div>
 
                 </div>
-              </motion.div>
+              </div>
             );
           })}
           <div ref={bottomRef} className="h-1" />

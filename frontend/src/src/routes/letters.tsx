@@ -83,80 +83,94 @@ function LettersPage() {
 
           {/* Letters list */}
           <div className="space-y-4">
-            {letters.length === 0 && !composing && (
+            {loading && letters.length === 0 ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 rounded-3xl glass-strong p-6 shadow-cinema opacity-60 animate-pulse">
+                    <div className="h-14 w-14 flex-none rounded-2xl bg-white/10" />
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div className="h-3 w-24 rounded bg-white/15" />
+                      <div className="h-5 w-48 rounded bg-white/20" />
+                      <div className="h-4 w-full rounded bg-white/10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : letters.length === 0 && !composing ? (
               <div className="text-center text-muted-foreground py-20">
                 No letters yet. Be the first to write a love letter!
               </div>
-            )}
-            {letters.map((letter, i) => (
-              <motion.div
-                key={letter._id}
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: i * 0.08 }}
-                whileHover={{ x: 8 }}
-                onClick={() => !letter.isDraft && setSelected(letter)}
-                className={`group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 rounded-3xl glass-strong p-6 shadow-cinema transition-all duration-300 hover:border-primary/40 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] ${
-                  letter.isDraft ? "opacity-70 cursor-default" : "cursor-pointer"
-                }`}
-              >
-                <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10 text-3xl shadow-glow">
-                  💌
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-3">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-rose">
-                        {new Date(letter.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}
-                      </p>
-                      {letter.isDraft && (
-                        <span className="flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                          <Lock className="h-2.5 w-2.5" /> Draft
-                        </span>
-                      )}
-                    </div>
-                    {/* Hover Actions */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={(e) => handleEdit(letter, e)} 
-                        className="rounded-full p-2 hover:bg-primary/10 hover:text-primary transition"
-                        aria-label="Edit letter"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setLetterToDelete(letter); }} 
-                        className="rounded-full p-2 hover:bg-rose/10 hover:text-rose transition"
-                        aria-label="Delete letter"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+            ) : (
+              letters.map((letter, i) => (
+                <motion.div
+                  key={letter._id}
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: i * 0.08 }}
+                  whileHover={{ x: 8 }}
+                  onClick={() => !letter.isDraft && setSelected(letter)}
+                  className={`group flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 rounded-3xl glass-strong p-6 shadow-cinema transition-all duration-300 hover:border-primary/40 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] ${
+                    letter.isDraft ? "opacity-70 cursor-default" : "cursor-pointer"
+                  }`}
+                >
+                  <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10 text-3xl shadow-glow">
+                    💌
                   </div>
-                  <h3 className="font-display text-2xl font-bold mb-1">{letter.title}</h3>
-                  <p className="text-xs font-medium text-muted-foreground mb-3">By {letter.author?.name || 'Unknown'}</p>
-                  <p className="truncate text-sm text-foreground/80 leading-relaxed">{letter.content.substring(0, 120)}...</p>
-                  
-                  {/* Stats Row */}
-                  {!letter.isDraft && (
-                    <div className="mt-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Heart className="h-3.5 w-3.5 text-rose fill-rose/20" />
-                        <span>{letter.reactions?.length || 0} Reactions</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-3">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-rose">
+                          {new Date(letter.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}
+                        </p>
+                        {letter.isDraft && (
+                          <span className="flex items-center gap-1 rounded-full glass px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                            <Lock className="h-2.5 w-2.5" /> Draft
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <MessageCircleHeart className="h-3.5 w-3.5 text-primary" />
-                        <span>{letter.commentCount || 0} Comments</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Reply className="h-3.5 w-3.5 text-accent" />
-                        <span>{letter.replyCount || 0} Replies</span>
+                      {/* Hover Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={(e) => handleEdit(letter, e)} 
+                          className="rounded-full p-2 hover:bg-primary/10 hover:text-primary transition"
+                          aria-label="Edit letter"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setLetterToDelete(letter); }} 
+                          className="rounded-full p-2 hover:bg-rose/10 hover:text-rose transition"
+                          aria-label="Delete letter"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                    <h3 className="font-display text-2xl font-bold mb-1">{letter.title}</h3>
+                    <p className="text-xs font-medium text-muted-foreground mb-3">By {letter.author?.name || 'Unknown'}</p>
+                    <p className="truncate text-sm text-foreground/80 leading-relaxed">{letter.content.substring(0, 120)}...</p>
+                    
+                    {/* Stats Row */}
+                    {!letter.isDraft && (
+                      <div className="mt-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <Heart className="h-3.5 w-3.5 text-rose fill-rose/20" />
+                          <span>{letter.reactions?.length || 0} Reactions</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircleHeart className="h-3.5 w-3.5 text-primary" />
+                          <span>{letter.commentCount || 0} Comments</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Reply className="h-3.5 w-3.5 text-accent" />
+                          <span>{letter.replyCount || 0} Replies</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
 
           {/* Compose area */}

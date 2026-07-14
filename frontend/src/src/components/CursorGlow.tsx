@@ -8,6 +8,9 @@ import { useEffect, useRef } from "react";
  *
  * Performance optimisations:
  * – Skipped completely on `pointer: coarse` devices (touch-only).
+ * – rAF loop does NOT start on mount — it starts on first `mousemove`.
+ *   This prevents a 60fps idle loop running before the user has even moved
+ *   the cursor (which previously wasted CPU during initial page load).
  * – rAF loop idles (cancels itself) after 3 seconds of no mouse movement.
  *   The loop restarts automatically on the next mousemove event.
  * – Pauses when the tab is hidden (Page Visibility API).
@@ -26,7 +29,7 @@ export function CursorGlow() {
     let tx = 0, ty = 0, x = 0, y = 0;
     let raf = 0;
     let idleTimer = 0;
-    let isIdle = false;
+    let isIdle = true; // Start idle — loop begins only on first mousemove
     let isPaused = document.hidden;
 
     const startLoop = () => {
@@ -51,6 +54,12 @@ export function CursorGlow() {
     const onMove = (e: MouseEvent) => {
       tx = e.clientX;
       ty = e.clientY;
+
+      // First ever mouse move — snap position so the glow doesn't fly in from (0,0)
+      if (isIdle && x === 0 && y === 0) {
+        x = tx;
+        y = ty;
+      }
 
       // Clear idle state and restart loop if it had stopped
       if (isIdle) {
@@ -78,8 +87,8 @@ export function CursorGlow() {
     window.addEventListener("mousemove", onMove, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
 
-    // Initial loop start
-    startLoop();
+    // NOTE: we intentionally do NOT call startLoop() here.
+    // The loop starts only after the first mousemove fires.
 
     return () => {
       stopLoop();

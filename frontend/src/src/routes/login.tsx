@@ -37,21 +37,12 @@ function LoginPage() {
       <div className="glow-orb pointer-events-none fixed -top-40 left-1/2 z-0 h-[360px] w-[360px] -translate-x-1/2 rounded-full opacity-30 hidden sm:block" />
       <div className="glow-orb pointer-events-none fixed bottom-0 right-0 z-0 h-[280px] w-[280px] rounded-full opacity-15 hidden sm:block" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-md"
-      >
+      <div className="relative z-10 w-full max-w-md anim-enter-scale">
         {/* Logo */}
         <div className="mb-10 text-center">
-          <motion.div
-            animate={{ scale: [1, 1.12, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            className="inline-flex"
-          >
+          <div className="inline-flex anim-heart-pulse">
             <Heart className="h-10 w-10 fill-primary text-primary drop-shadow-glow" />
-          </motion.div>
+          </div>
           <h1 className="mt-4 font-display text-4xl font-bold">
             Welcome back to <span className="text-gradient">MINI</span>
           </h1>
@@ -147,7 +138,7 @@ function LoginPage() {
         <p className="mt-6 text-center text-[11px] text-muted-foreground/60">
           🔒 End-to-end encrypted · Private & secure · Just for two
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

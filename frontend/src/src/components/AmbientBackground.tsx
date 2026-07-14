@@ -13,6 +13,8 @@ import { deviceCapability } from "@/hooks/useDeviceCapability";
  * – Loop pauses automatically when the tab is hidden (Page Visibility API).
  * – Resize is debounced (150 ms) and particle bounds are patched in place.
  * – No new object allocations inside the draw loop.
+ * – ctx.setTransform is hoisted OUT of the per-frame draw loop and only
+ *   re-applied after a resize event — saves one matrix-multiply per frame.
  */
 
 const {
@@ -64,7 +66,8 @@ export function AmbientBackground() {
       canvas.height = Math.round(ch * DPR);
       canvas.style.width = cw + "px";
       canvas.style.height = ch + "px";
-      ctx.scale(DPR, DPR);
+      // Re-apply transform after resize (canvas.width reset clears it)
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       return { cw, ch };
     };
 
@@ -88,11 +91,12 @@ export function AmbientBackground() {
     }));
 
     // ── Draw loop ────────────────────────────────────────────────────
+    // NOTE: ctx.setTransform is NOT called here — it was applied in applySize()
+    // and only needs to be re-applied after a resize. This saves a matrix-multiply
+    // on every single frame (was previously the first call inside every draw()).
     const draw = () => {
       if (paused) { raf = 0; return; }
 
-      // Re-apply scale after resize because ctx.scale is reset when canvas.width changes
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
       if (USE_SHADOW_BLUR) {
@@ -138,6 +142,7 @@ export function AmbientBackground() {
     const onResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
+        // applySize() re-applies setTransform — so draw() doesn't need to
         ({ cw: w, ch: h } = applySize());
         for (const p of particles) {
           if (p.x > w) p.x = Math.random() * w;
