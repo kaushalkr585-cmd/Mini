@@ -188,7 +188,9 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     background-image: var(--gradient-hero);
-    background-attachment: fixed;
+    /* background-attachment: fixed intentionally removed — it forces a full-page
+       repaint on every scroll frame on mobile GPUs. Using scroll instead. */
+    background-attachment: scroll;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
@@ -375,6 +377,9 @@
   background: var(--gradient-glow);
   filter: blur(60px);
   pointer-events: none;
+  /* Use transform:translateZ(0) to promote to own compositor layer */
+  transform: translateZ(0);
+  will-change: opacity;
 }
 .scrollbar-hidden::-webkit-scrollbar { display: none; }
 .scrollbar-hidden { scrollbar-width: none; }
@@ -567,18 +572,96 @@
   will-change: transform;
 }
 
-/* ── Mobile: reduce expensive backdrop-filter usage ──────────── */
+/* ── Tablet (≤768px): moderate backdrop-filter reduction ─────── */
+@media (max-width: 768px) {
+  .glass-strong {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+  .glass-modal {
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+  }
+  /* Reduce large glow-orb filter blur on tablet */
+  .glow-orb {
+    filter: blur(40px);
+  }
+  /* Reduce shadow-glow on mobile */
+  .shadow-glow {
+    box-shadow:
+      0 0 24px oklch(0.72 0.32 350 / 0.35),
+      0 0 48px oklch(0.72 0.32 350 / 0.15);
+  }
+}
+
+/* ── Mobile (≤480px): aggressive backdrop-filter reduction ───── */
 @media (max-width: 480px) {
   .glass {
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
   }
   .glass-strong {
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
   }
   .glass-card, .card-glass {
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  .glass-modal {
     backdrop-filter: blur(16px) saturate(150%);
     -webkit-backdrop-filter: blur(16px) saturate(150%);
   }
+  .search-glass {
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  .btn-glass {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .btn-glass-icon {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  /* Shrink and reduce glow-orb on mobile */
+  .glow-orb {
+    filter: blur(28px);
+    opacity: 0.6 !important;
+  }
+  /* Reduce shadow-glow further */
+  .shadow-glow {
+    box-shadow: 0 0 16px oklch(0.72 0.32 350 / 0.3);
+  }
+}
+
+/* ── Very small screens ≤360px: minimal blur for low-end devices  */
+@media (max-width: 360px) {
+  .glass, .glass-strong, .glass-card, .card-glass, .glass-modal {
+    /* Very minimal blur — use semi-transparent solid background instead */
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+  }
+  .search-glass {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .btn-glass, .btn-glass-icon {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* No filter blur on glow-orb — use opacity fade only */
+  .glow-orb {
+    filter: none;
+    opacity: 0.4 !important;
+  }
+  .shadow-glow {
+    box-shadow: 0 0 10px oklch(0.72 0.32 350 / 0.25);
+  }
+}
+
+/* ── content-visibility utility for below-fold sections ───────── */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px; /* prevent layout shift while offscreen */
 }

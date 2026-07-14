@@ -1,6 +1,6 @@
 import { motion, animate } from "framer-motion";
 import { Play, Plus } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import hero from "@/assets/hero.jpg";
 
 export function Hero({ onReliveLatest, onAddMemory }: { onReliveLatest?: () => void; onAddMemory?: () => void }) {
@@ -12,7 +12,14 @@ export function Hero({ onReliveLatest, onAddMemory }: { onReliveLatest?: () => v
   return (
     <section className="relative min-h-[100dvh] w-full overflow-hidden pt-24">
       <div className="absolute inset-0 z-0">
-        <img src={hero} alt="" className="h-full w-full object-cover opacity-60" />
+        <img
+          src={hero}
+          alt=""
+          fetchPriority="high"
+          loading="eager"
+          decoding="async"
+          className="h-full w-full object-cover opacity-60"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
       </div>
@@ -67,21 +74,34 @@ export function Hero({ onReliveLatest, onAddMemory }: { onReliveLatest?: () => v
   );
 }
 
+/**
+ * Counter animates the displayed number without any React state updates.
+ * We mutate `ref.current.textContent` directly from Framer's onUpdate callback,
+ * which runs outside React's render cycle — zero re-renders during animation.
+ */
 function Counter({ value, label }: { value: number; label: string }) {
-  const [displayValue, setDisplayValue] = useState(0);
+  const numRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    const el = numRef.current;
+    if (!el) return;
+    // Set initial value immediately to avoid flash of "0"
+    el.textContent = "0";
     const controls = animate(0, value, {
       duration: 2.5,
       ease: "easeOut",
-      onUpdate: (v) => setDisplayValue(Math.floor(v)),
+      onUpdate: (v) => {
+        if (el) el.textContent = Math.floor(v).toLocaleString();
+      },
     });
     return () => controls.stop();
   }, [value]);
 
   return (
     <div>
-      <div className="font-display text-3xl font-bold text-gradient">{displayValue.toLocaleString()}</div>
+      <div className="font-display text-3xl font-bold text-gradient">
+        <span ref={numRef}>0</span>
+      </div>
       <div className="mt-0.5 text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
     </div>
   );

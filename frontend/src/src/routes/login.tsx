@@ -33,9 +33,9 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4">
-      {/* Glow orbs */}
-      <div className="glow-orb pointer-events-none fixed -top-60 left-1/2 z-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full opacity-40" />
-      <div className="glow-orb pointer-events-none fixed bottom-0 right-0 z-0 h-[400px] w-[400px] rounded-full opacity-20" />
+      {/* Ambient glow orbs — decorative only, hidden on very small screens to save GPU */}
+      <div className="glow-orb pointer-events-none fixed -top-40 left-1/2 z-0 h-[360px] w-[360px] -translate-x-1/2 rounded-full opacity-30 hidden sm:block" />
+      <div className="glow-orb pointer-events-none fixed bottom-0 right-0 z-0 h-[280px] w-[280px] rounded-full opacity-15 hidden sm:block" />
 
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.95 }}

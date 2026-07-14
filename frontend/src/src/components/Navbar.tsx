@@ -5,6 +5,7 @@ import { Heart, Moon, Sun, Search, LogIn, Menu, X, Shield, LogOut } from "lucide
 import { useTheme } from "./ThemeProvider";
 import { useAuthStore } from "@/store/authStore";
 import { useCoupleStore } from "@/store/coupleStore";
+import { deviceCapability } from "@/hooks/useDeviceCapability";
 
 const links = [
   { to: "/", label: "Home" },
@@ -60,11 +61,15 @@ export function Navbar() {
                   <>
                     {l.label}
                     {isActive && (
-                      <motion.div
-                        layoutId="nav-active"
-                        className="absolute inset-0 -z-10 rounded-lg bg-primary/15"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
+                      deviceCapability.enableLayoutAnimation ? (
+                        <motion.div
+                          layoutId="nav-active"
+                          className="absolute inset-0 -z-10 rounded-lg bg-primary/15"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      ) : (
+                        <span className="absolute inset-0 -z-10 rounded-lg bg-primary/15" />
+                      )
                     )}
                   </>
                 )}
@@ -92,9 +97,11 @@ export function Navbar() {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
-            {/* User Area */}
+            {/* User Area — desktop-only auth controls wrapped in a plain div
+                so `hidden md:flex` is not overridden by .btn-glass inline-flex */}
             {user ? (
               <>
+                {/* Admin icon — visible on all sizes (small, unobtrusive) */}
                 <Link
                   to="/admin"
                   className="btn-glass-icon"
@@ -102,6 +109,7 @@ export function Navbar() {
                 >
                   <Shield className="h-4 w-4" />
                 </Link>
+                {/* Avatar pair — desktop only */}
                 <div className="hidden md:flex items-center -space-x-2 ml-1 relative group cursor-pointer" onClick={logout}>
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent ring-2 ring-background shadow-glow relative overflow-hidden">
                     {user.avatar ? (
@@ -131,20 +139,20 @@ export function Navbar() {
                 </div>
               </>
             ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="hidden md:flex btn-glass"
-                >
+              /* Plain div wrapper — no conflicting CSS so `hidden md:flex` works
+                 correctly regardless of inner element classes (.btn-glass, etc.) */
+              <div className="hidden md:flex items-center gap-1.5">
+                <Link to="/login" className="btn-glass">
                   <LogIn className="h-3.5 w-3.5" />
                   Sign In
                 </Link>
-                <Link to="/signup" className="hidden md:flex items-center -space-x-2 ml-1 hover:scale-105 transition-transform">
+                <Link to="/signup" className="flex items-center -space-x-2 ml-1 hover:scale-105 transition-transform">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent ring-2 ring-background shadow-glow" />
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-accent to-primary ring-2 ring-background" />
                 </Link>
-              </>
+              </div>
             )}
+
 
             {/* Mobile menu toggle */}
             <button

@@ -53,9 +53,17 @@ export function LoveNoteCard() {
         whileHover={{ y: -4 }}
         className={`relative overflow-hidden rounded-3xl p-8 sm:p-12 ${bgStyle}`}
       >
-        {/* Glow ambient circle background */}
-        <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
-        <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
+        {/* Ambient glow — uses radial-gradient instead of filter:blur to avoid
+            creating expensive GPU compositing layers */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-3xl opacity-60"
+          style={{
+            background:
+              "radial-gradient(ellipse at top left, oklch(0.72 0.32 350 / 0.18), transparent 55%), " +
+              "radial-gradient(ellipse at bottom right, oklch(0.65 0.30 0 / 0.14), transparent 55%)",
+          }}
+        />
 
         <div className="flex flex-col md:flex-row gap-8 items-center">
           {/* Card Text Content */}

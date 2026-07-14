@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { ChevronLeft, ChevronRight, Heart, Play, Video } from "lucide-react";
 import type { Memory } from "@/store/coupleStore";
+import { deviceCapability } from "@/hooks/useDeviceCapability";
 
 export function MemoryRow({
   title,
@@ -49,44 +50,30 @@ export function MemoryRow({
   );
 }
 
-function VideoDurationBadge({ src }: { src: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [duration, setDuration] = useState<string | null>(null);
-
-  return (
-    <>
-      <video
-        ref={videoRef}
-        src={src}
-        className="hidden"
-        preload="metadata"
-        onLoadedMetadata={() => {
-          const v = videoRef.current;
-          if (v && isFinite(v.duration)) {
-            const m = Math.floor(v.duration / 60);
-            const s = Math.floor(v.duration % 60);
-            setDuration(`${m}:${s.toString().padStart(2, "0")}`);
-          }
-        }}
-      />
-      {duration && (
-        <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white font-medium tabular-nums flex items-center gap-1 z-10">
-          <Video className="h-2.5 w-2.5" />
-          {duration}
-        </div>
-      )}
-    </>
-  );
-}
-
 function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: () => void }) {
+  const isMobile = deviceCapability.isMobile;
+
+  // Derive thumbnail for video cards — avoids loading full video data in the grid
+  const thumbnailUrl = (() => {
+    if (m.type !== "video") return m.url;
+    if (m.thumbnail) return m.thumbnail;
+    if (m.url.includes("cloudinary.com")) {
+      return m.url.replace(
+        "/video/upload/",
+        "/video/upload/c_limit,w_480,h_640,f_jpg,q_auto,so_0/"
+      );
+    }
+    return undefined; // no thumbnail available — will fall back to placeholder
+  })();
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      // Hover lift only on desktop — touch devices don't have hover
+      whileHover={isMobile ? undefined : { y: -8, scale: 1.02 }}
       onClick={onOpen}
       className="group relative h-[280px] w-[220px] sm:h-[360px] sm:w-[280px] flex-none snap-start overflow-hidden rounded-2xl shadow-cinema cursor-pointer"
       style={{
@@ -94,30 +81,40 @@ function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: ()
         border: "1px solid oklch(1 0 0 / 0.07)",
       }}
     >
-      {m.type === 'video' ? (
+      {m.type === "video" ? (
         <>
-          <video
-            src={m.url}
-            poster={m.thumbnail}
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-            muted
-            loop
-            playsInline
-            onMouseEnter={(e) => e.currentTarget.play()}
-            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-          />
+          {/* Use thumbnail image instead of <video> in the grid to avoid
+              simultaneous video decoding of many off-screen clips */}
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt={m.title}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/10 flex items-center justify-center">
+              <Video className="h-12 w-12 text-white/30" />
+            </div>
+          )}
           {/* Play icon overlay for videos */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="h-12 w-12 rounded-full glass-strong flex items-center justify-center shadow-glow">
               <Play className="h-5 w-5 fill-white text-white translate-x-0.5" />
             </div>
           </div>
-          <VideoDurationBadge src={m.url} />
         </>
       ) : (
-        <img src={m.url} alt={m.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+        <img
+          src={m.url}
+          alt={m.title}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
       )}
-      
+
       {m.urls && m.urls.length > 1 && (
         <div className="absolute top-3 left-3 rounded-full glass px-2 py-0.5 text-[10px] font-medium text-white/90 shadow-sm backdrop-blur-md">
           +{m.urls.length - 1} photos
@@ -126,8 +123,10 @@ function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: ()
 
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
 
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-           style={{ background: "radial-gradient(circle at 50% 30%, oklch(0.72 0.32 350 / 0.35), transparent 70%)" }} />
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: "radial-gradient(circle at 50% 30%, oklch(0.72 0.32 350 / 0.35), transparent 70%)" }}
+      />
 
       <div className="absolute right-3 top-3 rounded-full glass px-3 py-1 text-[10px] font-medium uppercase tracking-wider">
         {m.tag}
@@ -142,7 +141,7 @@ function MemoryCard({ m, index, onOpen }: { m: Memory; index: number; onOpen: ()
             <Play className="h-3 w-3 fill-current" /> Open
           </button>
           <button className="rounded-full glass p-2">
-            <Heart className={`h-3.5 w-3.5 ${m.likes && m.likes.length > 0 ? 'fill-rose text-rose' : ''}`} />
+            <Heart className={`h-3.5 w-3.5 ${m.likes && m.likes.length > 0 ? "fill-rose text-rose" : ""}`} />
           </button>
         </div>
       </div>

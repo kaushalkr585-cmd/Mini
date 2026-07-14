@@ -80,13 +80,14 @@ function Index() {
 
         <div className="space-y-4">
           {collections.map((c) => (
-            <MemoryRow 
-              key={c.title} 
-              title={c.title} 
-              tagline={c.tagline} 
-              items={c.items} 
-              onOpenMemory={setSelectedMemory}
-            />
+            <div key={c.title} className="cv-auto">
+              <MemoryRow
+                title={c.title}
+                tagline={c.tagline}
+                items={c.items}
+                onOpenMemory={setSelectedMemory}
+              />
+            </div>
           ))}
           {collections.length === 0 && (
             <div className="py-20 text-center text-muted-foreground">
@@ -95,9 +96,15 @@ function Index() {
           )}
         </div>
         {/* Memory Collections — categories below Recent Memories */}
-        <MemoryCollections />
-        <LoveQuote />
-        <Timeline />
+        <div className="cv-auto">
+          <MemoryCollections />
+        </div>
+        <div className="cv-auto">
+          <LoveQuote />
+        </div>
+        <div className="cv-auto">
+          <Timeline />
+        </div>
         <Footer />
       </main>
       <Suspense fallback={null}>
