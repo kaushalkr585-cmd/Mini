@@ -286,7 +286,7 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 sm:p-4 dark"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 sm:p-4"
         style={{ backdropFilter: 'blur(8px)' }}
         onClick={(e) => { if (e.target === e.currentTarget && !uploading) { resetForm(); onClose(); } }}
       >
@@ -446,7 +446,7 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleAddTag}
                     placeholder={tags.length === 0 ? "Type tag and press Enter…" : "Add tag…"}
-                    className="flex-1 min-w-[100px] bg-transparent border-none outline-none text-sm px-2 py-1 text-white placeholder:text-muted-foreground/40"
+                    className="flex-1 min-w-[100px] bg-transparent border-none outline-none text-sm px-2 py-1 text-foreground placeholder:text-muted-foreground/40"
                   />
                 </div>
               </div>

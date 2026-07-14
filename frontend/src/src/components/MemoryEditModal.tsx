@@ -74,7 +74,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 dark"
+        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -167,7 +167,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleAddTag}
                     placeholder={tags.length === 0 ? "Type tag and press Enter…" : "Add tag…"}
-                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 py-1 text-white placeholder:text-muted-foreground/40"
+                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 py-1 text-foreground placeholder:text-muted-foreground/40"
                   />
                 </div>
               </div>

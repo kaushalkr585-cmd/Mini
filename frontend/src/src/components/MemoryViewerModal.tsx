@@ -105,7 +105,7 @@ export const MemoryViewerModal = memo(function MemoryViewerModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: shouldReduceEffects ? 0.15 : 0.25 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 dark"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
             style={{ backdropFilter: shouldReduceEffects ? 'blur(8px)' : 'blur(20px)' }}
           >
             {/* Ambient background — skip on mobile */}
@@ -223,7 +223,7 @@ export const MemoryViewerModal = memo(function MemoryViewerModal({
                 <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 sm:p-6 space-y-4">
 
                   {/* Title */}
-                  <h2 className="font-display font-bold leading-tight text-white"
+                  <h2 className="font-display font-bold leading-tight text-foreground"
                     style={{ fontSize: isMobile ? '1.25rem' : '1.75rem' }}
                   >
                     {memory.title}
@@ -247,7 +247,7 @@ export const MemoryViewerModal = memo(function MemoryViewerModal({
 
                   {/* Description */}
                   {memory.notes && (
-                    <p className="text-white/75 leading-relaxed text-xs sm:text-sm whitespace-pre-wrap line-clamp-4 sm:line-clamp-none">
+                    <p className="text-foreground/80 leading-relaxed text-xs sm:text-sm whitespace-pre-wrap line-clamp-4 sm:line-clamp-none">
                       {memory.notes}
                     </p>
                   )}
@@ -258,7 +258,7 @@ export const MemoryViewerModal = memo(function MemoryViewerModal({
                       onClick={handleLike}
                       className="flex items-center gap-2 rounded-xl glass-strong px-4 py-2.5 min-h-[44px] hover:bg-white/10 transition w-full justify-center"
                     >
-                      <Heart className={`h-4 w-4 ${memory.likes && memory.likes.length > 0 ? "fill-primary text-primary" : "text-white/70"}`} />
+                      <Heart className={`h-4 w-4 ${memory.likes && memory.likes.length > 0 ? "fill-primary text-primary" : "text-foreground/70"}`} />
                       <span className="text-sm font-medium">{memory.likes?.length || 0}</span>
                     </button>
                   </div>
@@ -282,8 +282,8 @@ export const MemoryViewerModal = memo(function MemoryViewerModal({
                           onClick={() => handleReact(emoji)}
                           className={`flex items-center gap-1 rounded-full px-2 py-1 min-h-[36px] transition text-sm ${
                             hasReacted
-                              ? "bg-primary/20 border border-primary/50 text-white"
-                              : "glass hover:bg-white/10 text-white/80"
+                              ? "bg-primary/20 border border-primary/50 text-foreground"
+                              : "glass hover:bg-primary/10 text-foreground/80"
                           }`}
                         >
                           <span className="text-base leading-none">{emoji}</span>
@@ -298,9 +298,9 @@ export const MemoryViewerModal = memo(function MemoryViewerModal({
                   <div className="flex flex-wrap gap-2 pt-2">
                     <button
                       onClick={() => setIsEditOpen(true)}
-                      className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 rounded-xl glass-strong min-h-[44px] px-3 hover:bg-white/10 transition"
+                      className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 rounded-xl glass-strong min-h-[44px] px-3 hover:bg-primary/10 transition text-foreground"
                     >
-                      <Edit2 className="h-4 w-4 text-white/70" />
+                      <Edit2 className="h-4 w-4 text-foreground/70" />
                       <span className="text-sm font-medium">Edit</span>
                     </button>
 

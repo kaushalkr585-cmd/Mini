@@ -140,9 +140,9 @@ const MemoryCard = memo(function MemoryCard({
               className="flex flex-1 items-center justify-center gap-1 rounded-xl glass py-2 min-h-[36px] hover:bg-white/15 active:scale-95 transition"
               aria-label="Like"
             >
-              <Heart className={`h-4 w-4 ${m.likes && m.likes.length > 0 ? 'fill-rose text-rose' : 'text-white/80'}`} />
+              <Heart className={`h-4 w-4 ${m.likes && m.likes.length > 0 ? 'fill-rose text-rose' : 'text-foreground/70'}`} />
               {m.likes && m.likes.length > 0 && (
-                <span className="text-[10px] font-semibold text-white/80">{m.likes.length}</span>
+                <span className="text-[10px] font-semibold text-foreground/80">{m.likes.length}</span>
               )}
             </button>
 
@@ -150,7 +150,7 @@ const MemoryCard = memo(function MemoryCard({
             {m.reactions && m.reactions.length > 0 && (
               <div className="flex flex-1 items-center justify-center gap-0.5 rounded-xl glass py-2 min-h-[36px] text-[11px] font-medium">
                 <span>{Array.from(new Set(m.reactions.map(r => r.emoji))).slice(0, 2).join("")}</span>
-                <span className="text-white/70">{m.reactions.length}</span>
+                <span className="text-foreground/60">{m.reactions.length}</span>
               </div>
             )}
 
