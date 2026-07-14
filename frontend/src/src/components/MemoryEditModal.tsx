@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Save, Calendar, MapPin, Tag as TagIcon, Type, AlignLeft } from "lucide-react";
+import { X, Save, Calendar, MapPin, Tag as TagIcon, Type, AlignLeft, ChevronDown } from "lucide-react";
 import { Memory, useCoupleStore } from "@/store/coupleStore";
+import toast from "react-hot-toast";
 
 export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | null, isOpen: boolean, onClose: () => void }) {
   const { categories, editMemory } = useCoupleStore();
@@ -61,6 +62,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error('Failed to save changes');
     } finally {
       setLoading(false);
     }
@@ -86,8 +88,8 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
             </button>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+          {/* Form — scrollable body */}
+          <form id="edit-memory-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 scrollbar-hidden">
             <div>
               <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <Type className="h-3.5 w-3.5" /> Title
@@ -133,16 +135,19 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                 <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Folder (Category)
                 </label>
-                <select
-                  value={categoryId || ""}
-                  onChange={e => setCategoryId(e.target.value)}
-                  className="w-full rounded-xl glass py-3 px-4 min-h-[44px] outline-none focus:ring-1 focus:ring-primary/50 text-foreground [&>option]:bg-zinc-900"
-                >
-                  <option value="">None</option>
-                  {categories.map(c => (
-                    <option key={c._id} value={c._id}>{c.emoji} {c.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={categoryId || ""}
+                    onChange={e => setCategoryId(e.target.value)}
+                    className="w-full rounded-xl glass py-3 pl-4 pr-10 min-h-[44px] outline-none focus:ring-1 focus:ring-primary/50 text-foreground appearance-none [&>option]:bg-zinc-900 cursor-pointer"
+                  >
+                    <option value="">None</option>
+                    {categories.map(c => (
+                      <option key={c._id} value={c._id}>{c.emoji} {c.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div className="flex flex-col">
                 <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -168,6 +173,7 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
               </div>
             </div>
 
+            {/* Description */}
             <div>
               <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <AlignLeft className="h-3.5 w-3.5" /> Description / Notes
@@ -179,19 +185,32 @@ export function MemoryEditModal({ memory, isOpen, onClose }: { memory: Memory | 
                 placeholder="Write a sweet note about this memory..."
               />
             </div>
-
-            <div className="pt-4 flex justify-end gap-3">
-              <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
-              <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
-                {loading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save Changes
-              </button>
-            </div>
           </form>
+
+          {/* Sticky footer — always visible, never scrolls away */}
+          <div className="flex-none border-t border-white/10 px-5 py-4 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="rounded-xl px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all min-h-[44px] disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="edit-memory-form"
+              disabled={loading}
+              className="btn-primary flex items-center gap-2 min-h-[44px]"
+            >
+              {loading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save Changes
+            </button>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>

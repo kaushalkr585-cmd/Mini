@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Heart, Plus, Mail, Lock, Feather, ChevronRight, X, Edit2, Trash2, MessageCircleHeart, Reply } from "lucide-react";
-import { MusicPlayer } from "@/components/MusicPlayer";
 import { useCoupleStore, Letter } from "@/store/coupleStore";
 
 export const Route = createFileRoute("/letters")({
@@ -52,7 +51,7 @@ function LettersPage() {
   return (
     <>
       <div className="relative min-h-screen pb-32 pt-28">
-        <div className="mx-auto max-w-5xl px-6">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -64,7 +63,10 @@ function LettersPage() {
               <span className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs uppercase tracking-[0.3em] text-rose">
                 <Mail className="h-3 w-3" /> {letters.length} Letters
               </span>
-              <h1 className="mt-4 font-display text-6xl font-bold md:text-7xl">
+              <h1
+                className="mt-4 font-display font-bold"
+                style={{ fontSize: 'clamp(2.5rem, 12vw, 5rem)' }}
+              >
                 Love <span className="text-gradient italic">Letters</span>
               </h1>
               <p className="mt-3 text-muted-foreground">Words written when words were the only thing left.</p>
@@ -211,7 +213,6 @@ function LettersPage() {
             )}
           </AnimatePresence>
         </div>
-        <MusicPlayer />
       </div>
 
       {/* Letter Modal */}

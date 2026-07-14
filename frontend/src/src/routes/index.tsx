@@ -1,19 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
-import { Navbar } from "@/components/Navbar";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { MemoryRow } from "@/components/MemoryRow";
 import { Timeline } from "@/components/Timeline";
 import { LoveQuote } from "@/components/LoveQuote";
-import { MusicPlayer } from "@/components/MusicPlayer";
 import { Footer } from "@/components/Footer";
 import { useCoupleStore, Memory } from "@/store/coupleStore";
-import { MemoryViewerModal } from "@/components/MemoryViewerModal";
-import { UploadMemoryModal } from "@/components/UploadMemoryModal";
-import { ReliveMemoriesSlideshow } from "@/components/ReliveMemoriesSlideshow";
 import { MemoryCollections } from "@/components/MemoryCollections";
-
 import { LoveNoteCard } from "@/components/LoveNoteCard";
+
+// Lazy-load heavy modals so the homepage initial bundle stays lean
+const MemoryViewerModal = lazy(() => import("@/components/MemoryViewerModal").then(m => ({ default: m.MemoryViewerModal })));
+const UploadMemoryModal = lazy(() => import("@/components/UploadMemoryModal").then(m => ({ default: m.UploadMemoryModal })));
+const ReliveMemoriesSlideshow = lazy(() => import("@/components/ReliveMemoriesSlideshow").then(m => ({ default: m.ReliveMemoriesSlideshow })));
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -101,11 +100,11 @@ function Index() {
         <Timeline />
         <Footer />
       </main>
-      <MemoryViewerModal memory={selectedMemory} onClose={() => setSelectedMemory(null)} onLike={likeMemory} />
-      <UploadMemoryModal isOpen={isUploadMemoryOpen} onClose={() => setIsUploadMemoryOpen(false)} />
-      {isSlideshowOpen && (
-        <ReliveMemoriesSlideshow memories={memories} onClose={() => setIsSlideshowOpen(false)} />
-      )}
+      <Suspense fallback={null}>
+        {selectedMemory && <MemoryViewerModal memory={selectedMemory} onClose={() => setSelectedMemory(null)} onLike={likeMemory} />}
+        {isUploadMemoryOpen && <UploadMemoryModal isOpen={isUploadMemoryOpen} onClose={() => setIsUploadMemoryOpen(false)} />}
+        {isSlideshowOpen && <ReliveMemoriesSlideshow memories={memories} onClose={() => setIsSlideshowOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

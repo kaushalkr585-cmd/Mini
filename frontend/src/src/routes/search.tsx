@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Search as SearchIcon, X, Clock, TrendingUp } from "lucide-react";
 import { useCoupleStore, Memory } from "@/store/coupleStore";
-import { MemoryViewerModal } from "@/components/MemoryViewerModal";
+const MemoryViewerModal = lazy(() => import("@/components/MemoryViewerModal").then(m => ({ default: m.MemoryViewerModal })));
 export const Route = createFileRoute("/search")({
   component: SearchPage,
 });
@@ -11,8 +11,13 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const [query, setQuery] = useState("");
-  const { memories, likeMemory } = useCoupleStore();
+  const { memories, likeMemory, fetchMemories } = useCoupleStore();
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
+
+  // Fetch memories if not already loaded (e.g. user navigated directly to /search)
+  useEffect(() => {
+    if (memories.length === 0) fetchMemories();
+  }, [fetchMemories, memories.length]);
 
   const results = query.length > 1
     ? memories.filter(
@@ -175,7 +180,9 @@ function SearchPage() {
           </motion.div>
         )}
       </div>
-      <MemoryViewerModal memory={selectedMemory} onClose={() => setSelectedMemory(null)} onLike={likeMemory} />
+      <Suspense fallback={null}>
+        <MemoryViewerModal memory={selectedMemory} onClose={() => setSelectedMemory(null)} onLike={likeMemory} />
+      </Suspense>
     </div>
   );
 }

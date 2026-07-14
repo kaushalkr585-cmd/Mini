@@ -10,14 +10,14 @@ export function Hero({ onReliveLatest, onAddMemory }: { onReliveLatest?: () => v
     return Math.max(0, Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
   }, []);
   return (
-    <section className="relative min-h-screen w-full overflow-hidden pt-24">
+    <section className="relative min-h-[100dvh] w-full overflow-hidden pt-24">
       <div className="absolute inset-0 z-0">
         <img src={hero} alt="" className="h-full w-full object-cover opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[80vh] max-w-7xl flex-col justify-end px-6 pb-20">
+      <div className="relative z-10 mx-auto flex min-h-[80dvh] max-w-7xl flex-col justify-end px-4 sm:px-6 pb-16 sm:pb-20">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}

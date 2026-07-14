@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Play, Plus, CheckCircle2, Zap, Clock, Wifi } from "lucide-react";
+import { X, Upload, Play, Plus, CheckCircle2, Zap, Clock, Wifi, ChevronDown } from "lucide-react";
 import { useCoupleStore } from "@/store/coupleStore";
-import { compressFiles, compressVideo, formatBytes, uploadWithProgress, UploadProgressInfo } from "@/lib/compress";
+import { compressFiles, compressVideo, formatBytes, uploadWithProgress, uploadDirectToCloudinary, UploadProgressInfo } from "@/lib/compress";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -252,42 +252,79 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
     if (compressing) return toast.error("Wait for optimization to complete");
 
     const toUpload = compressedFiles.length === files.length ? compressedFiles : files;
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("sub", sub);
-    formData.append("notes", notes);
-    formData.append("location", location);
-    formData.append("categoryId", categoryId);
-    formData.append("tag", tags[0] || "Memory");
-    formData.append("tags", JSON.stringify(tags));
-    toUpload.forEach((file) => formData.append("files", file));
 
     setUploading(true);
     abortRef.current = new AbortController();
 
     try {
-      // Get auth token from api defaults
-      const token = (api.defaults.headers.common?.Authorization as string) || '';
-      const baseUrl = api.defaults.baseURL || '';
+      let signatureData = null;
+      try {
+        const { data } = await api.get('/memories/signature');
+        signatureData = data;
+      } catch (sigErr: any) {
+        if (sigErr?.response?.status !== 404) {
+          console.warn("Signature fetch failed with error, falling back to legacy upload:", sigErr);
+        }
+      }
 
-      await uploadWithProgress(
-        `${baseUrl}/memories/upload`,
-        formData,
-        token ? { Authorization: token } : {},
-        (info) => setUploadProgress(info),
-        abortRef.current.signal
-      );
+      if (signatureData) {
+        // 2. Upload files directly to Cloudinary (bypassing Render's 30s timeout)
+        const preUploadedFiles = await uploadDirectToCloudinary(
+          toUpload,
+          signatureData,
+          (info) => setUploadProgress(info),
+          abortRef.current.signal
+        );
+
+        // 3. Save memory metadata to MongoDB
+        await api.post('/memories/upload', {
+          title,
+          sub,
+          notes,
+          location,
+          categoryId,
+          tag: tags[0] || "Memory",
+          tags,
+          preUploadedFiles
+        });
+      } else {
+        // FALLBACK: Legacy upload directly to backend
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("sub", sub);
+        formData.append("notes", notes);
+        formData.append("location", location);
+        formData.append("categoryId", categoryId);
+        formData.append("tag", tags[0] || "Memory");
+        formData.append("tags", JSON.stringify(tags));
+        toUpload.forEach((file) => formData.append("files", file));
+
+        const token = localStorage.getItem('nishy_token') || '';
+        const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '');
+
+        await uploadWithProgress(
+          `${baseUrl}/memories/upload`,
+          formData,
+          token ? { Authorization: `Bearer ${token}` } : {},
+          (info) => setUploadProgress(info),
+          abortRef.current.signal
+        );
+      }
 
       await fetchMemories();
       if (categoryId) await fetchCategories();
-      toast.success("Memory uploaded successfully! ♥");
+      toast.success('Memory uploaded successfully! ♥');
       resetForm();
       onClose();
     } catch (err: any) {
       if (err?.name === 'CanceledError' || err?.name === 'AbortError') {
-        toast("Upload cancelled");
+        toast('Upload cancelled');
+      } else if (err?.response?.status === 401) {
+        toast.error('Session expired — please log in again');
+      } else if (err?.response?.status === 413) {
+        toast.error('Files too large — try with fewer or smaller files');
       } else {
-        toast.error("Upload failed — please try again");
+        toast.error(`Upload failed: ${err?.response?.data?.message || err?.message || 'Please try again'}`);
       }
     } finally {
       setUploading(false);
@@ -383,7 +420,7 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
                 </div>
                 <p className="font-medium text-sm">{isDragging ? "Drop files here!" : "Tap to select · or drag & drop"}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Photos (jpg, png, webp, gif) · Videos (mp4, mov, webm) · Auto-optimized ⚡
+                  Photos (jpg, png, webp, gif) · Videos (mp4, mov, webm)
                 </p>
               </div>
 
@@ -424,18 +461,21 @@ export const UploadMemoryModal = memo(function UploadMemoryModal({
               {/* Category */}
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground uppercase tracking-wider">Category</label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => {
-                    if (e.target.value === "__create__") { setShowCreateCat(true); setCategoryId(""); }
-                    else { setCategoryId(e.target.value); setShowCreateCat(false); }
-                  }}
-                  className="w-full rounded-xl bg-black/20 px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary appearance-none min-h-[44px]"
-                >
-                  <option value="">No Category</option>
-                  {categories.map(c => <option key={c._id} value={c._id}>{c.emoji} {c.name}</option>)}
-                  <option value="__create__">+ Create Category…</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={categoryId}
+                    onChange={(e) => {
+                      if (e.target.value === "__create__") { setShowCreateCat(true); setCategoryId(""); }
+                      else { setCategoryId(e.target.value); setShowCreateCat(false); }
+                    }}
+                    className="w-full rounded-xl bg-black/20 pl-4 pr-10 py-3 text-sm outline-none focus:ring-1 focus:ring-primary appearance-none min-h-[44px] cursor-pointer"
+                  >
+                    <option value="">No Category</option>
+                    {categories.map(c => <option key={c._id} value={c._id}>{c.emoji} {c.name}</option>)}
+                    <option value="__create__">+ Create Category…</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
 
               <AnimatePresence>

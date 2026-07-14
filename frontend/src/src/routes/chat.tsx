@@ -154,9 +154,10 @@ function ChatPage() {
     if (!showGifPicker) return;
     const fetchGifs = async () => {
       setIsSearchingGifs(true);
+      const giphyKey = import.meta.env.VITE_GIPHY_API_KEY || import.meta.env.VITE_GIPHY_KEY || '';
       const endpoint = gifSearch.trim() 
-        ? `https://api.giphy.com/v1/gifs/search?api_key=Y1qLtC53YlE3mBrFwvyq8xWyj0Hsl0ra&q=${encodeURIComponent(gifSearch)}&limit=20`
-        : `https://api.giphy.com/v1/gifs/trending?api_key=Y1qLtC53YlE3mBrFwvyq8xWyj0Hsl0ra&limit=20`;
+        ? `https://api.giphy.com/v1/gifs/search?api_key=${giphyKey}&q=${encodeURIComponent(gifSearch)}&limit=20`
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${giphyKey}&limit=20`;
         
       try {
         const res = await fetch(endpoint);

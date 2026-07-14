@@ -17,40 +17,81 @@ router.get('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/memories/upload  (multipart/form-data, field: "files" — up to 20)
+// GET /api/memories/signature
+router.get('/signature', auth, (req, res) => {
+  try {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const folder = 'nishy/memories';
+    
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp, folder },
+      cloudinary.config().api_secret
+    );
+    
+    res.json({
+      signature,
+      timestamp,
+      cloudName: cloudinary.config().cloud_name,
+      apiKey: cloudinary.config().api_key,
+      folder
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/memories/upload  (multipart/form-data OR JSON body with preUploadedFiles)
 router.post('/upload', auth, upload.array('files', 20), async (req, res) => {
   try {
-    const { title, tag, categoryId, sub, notes, location } = req.body;
+    const { title, tag, categoryId, sub, notes, location, preUploadedFiles } = req.body;
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'No files uploaded' });
-    }
-
-    const isVideo = req.files[0].mimetype?.startsWith('video/') || req.files[0].resource_type === 'video';
-    
-    const urls = req.files.map(f => f.path);
-    const publicIds = req.files.map(f => f.filename);
-
+    let urls = [];
+    let publicIds = [];
+    let isVideo = false;
     let duration = 0;
     let resolution = '';
-    
-    if (isVideo) {
+
+    let parsedPreUploaded = [];
+    if (preUploadedFiles) {
       try {
-        const fileInfo = req.files[0];
-        const result = fileInfo.cloudinary || fileInfo.info || fileInfo.api_res;
-        if (result && result.duration) {
-          duration = Math.round(result.duration);
-          resolution = `${result.width}x${result.height}`;
-        } else {
-          // Fallback: fetch resource metadata from Cloudinary API
-          const resource = await cloudinary.api.resource(publicIds[0], { resource_type: 'video' });
-          if (resource) {
-            duration = Math.round(resource.duration || 0);
-            resolution = `${resource.width || 0}x${resource.height || 0}`;
+        parsedPreUploaded = typeof preUploadedFiles === 'string' ? JSON.parse(preUploadedFiles) : preUploadedFiles;
+      } catch (e) {
+        console.error('Failed to parse preUploadedFiles:', e);
+      }
+    }
+
+    if (parsedPreUploaded && parsedPreUploaded.length > 0) {
+      urls = parsedPreUploaded.map(f => f.url);
+      publicIds = parsedPreUploaded.map(f => f.publicId);
+      const firstFile = parsedPreUploaded[0];
+      isVideo = firstFile.type === 'video';
+      duration = firstFile.duration || 0;
+      resolution = firstFile.resolution || '';
+    } else {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No files uploaded' });
+      }
+      isVideo = req.files[0].mimetype?.startsWith('video/') || req.files[0].resource_type === 'video';
+      urls = req.files.map(f => f.path);
+      publicIds = req.files.map(f => f.filename);
+
+      if (isVideo) {
+        try {
+          const fileInfo = req.files[0];
+          const result = fileInfo.cloudinary || fileInfo.info || fileInfo.api_res;
+          if (result && result.duration) {
+            duration = Math.round(result.duration);
+            resolution = `${result.width}x${result.height}`;
+          } else {
+            const resource = await cloudinary.api.resource(publicIds[0], { resource_type: 'video' });
+            if (resource) {
+              duration = Math.round(resource.duration || 0);
+              resolution = `${resource.width || 0}x${resource.height || 0}`;
+            }
           }
+        } catch (err) {
+          console.error('Failed to retrieve video metadata:', err);
         }
-      } catch (err) {
-        console.error('Failed to retrieve video metadata:', err);
       }
     }
 
@@ -67,16 +108,20 @@ router.post('/upload', auth, upload.array('files', 20), async (req, res) => {
       tagsArray = [tag];
     }
 
+    const defaultTitle = parsedPreUploaded && parsedPreUploaded.length > 0 
+      ? 'Memory' 
+      : req.files[0].originalname.replace(/\.[^.]+$/, '');
+
     const memory = await Memory.create({
-      title: title || req.files[0].originalname.replace(/\.[^.]+$/, ''),
+      title: title || defaultTitle,
       sub: sub || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       notes: notes || '',
       location: location || '',
       tag: tag || 'Memory',
       type: isVideo ? 'video' : 'photo',
-      url: urls[0], // Main image
+      url: urls[0],
       publicId: publicIds[0],
-      urls: urls, // Store all images
+      urls: urls,
       publicIds: publicIds,
       thumbnail: isVideo ? urls[0].replace('/upload/', '/upload/c_limit,w_640,h_360,f_jpg,q_auto,so_0/') : '',
       duration: isVideo ? duration : 0,
@@ -88,10 +133,8 @@ router.post('/upload', auth, upload.array('files', 20), async (req, res) => {
     
     const populated = await memory.populate('uploadedBy', 'name role');
 
-    // Broadcast new memory to partner
     req.io.emit('memory:new', populated);
 
-    // Activity broadcast
     req.io.emit('activity:update', {
       userId: req.user._id,
       userName: req.user.name,

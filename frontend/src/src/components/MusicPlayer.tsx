@@ -26,10 +26,17 @@ export function MusicPlayer() {
   useEffect(() => {
     if (!token) return;
 
-    const script = document.createElement("script");
-    script.src = "https://sdk.scdn.co/spotify-player.js";
-    script.async = true;
-    document.body.appendChild(script);
+    // Guard against appending the script multiple times (e.g. on token refresh)
+    if (!document.getElementById('spotify-player-sdk')) {
+      const script = document.createElement('script');
+      script.id = 'spotify-player-sdk';
+      script.src = 'https://sdk.scdn.co/spotify-player.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    // Use a ref to hold the player instance so cleanup always gets the latest value
+    let localPlayer: any = null;
 
     window.onSpotifyWebPlaybackSDKReady = () => {
       const p = new window.Spotify.Player({
@@ -38,15 +45,15 @@ export function MusicPlayer() {
         volume,
       });
 
+      localPlayer = p;
       setPlayer(p);
 
       p.addListener("ready", ({ device_id }: { device_id: string }) => {
-        console.log("Ready with Device ID", device_id);
         setDeviceId(device_id);
       });
 
-      p.addListener("not_ready", ({ device_id }: { device_id: string }) => {
-        console.log("Device ID has gone offline", device_id);
+      p.addListener("not_ready", (_: { device_id: string }) => {
+        // Device went offline — no action needed
       });
 
       p.addListener("player_state_changed", (state: any) => {
@@ -54,7 +61,6 @@ export function MusicPlayer() {
         setLocalProgress(state.position);
         useMusicStore.getState().updateProgress(state.position, state.duration);
         const storeState = useMusicStore.getState();
-        // Defer state update to avoid "setState during render" React warnings
         if (state.paused !== !storeState.isPlaying) {
           setTimeout(() => {
             useMusicStore.setState({ isPlaying: !state.paused });
@@ -65,8 +71,13 @@ export function MusicPlayer() {
       p.connect();
     };
 
+    // If SDK was already loaded, fire the ready callback manually
+    if (window.Spotify) {
+      window.onSpotifyWebPlaybackSDKReady();
+    }
+
     return () => {
-      if (player) player.disconnect();
+      if (localPlayer) localPlayer.disconnect();
     };
   }, [token]);
 

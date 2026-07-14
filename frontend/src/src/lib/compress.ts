@@ -98,10 +98,10 @@ export async function compressImage(
 export async function compressVideo(
   file: File,
   onProgress?: (pct: number) => void,
-  maxWidthPx = 1280
+  maxWidthPx = 1920   // Medium quality: up to 1080p landscape
 ): Promise<File> {
-  // Only attempt compression for large videos (> 20 MB)
-  if (file.size < 20 * 1024 * 1024) return file;
+  // Only attempt compression for larger videos (> 40 MB); preserve smaller ones as-is
+  if (file.size < 40 * 1024 * 1024) return file;
 
   // Check MediaRecorder support
   if (typeof MediaRecorder === 'undefined') return file;
@@ -181,8 +181,8 @@ export async function compressVideo(
       try {
         recorder = new MediaRecorder(canvasStream, {
           mimeType,
-          videoBitsPerSecond: 2_000_000, // 2 Mbps
-          audioBitsPerSecond: 128_000,
+          videoBitsPerSecond: 4_000_000, // 4 Mbps — medium quality
+          audioBitsPerSecond: 192_000,   // 192 kbps audio
         });
       } catch {
         cleanup();
@@ -362,4 +362,101 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1024)             return `${bytes} B`;
   if (bytes < 1024 * 1024)      return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Upload files directly to Cloudinary using backend-generated signature.
+ */
+export async function uploadDirectToCloudinary(
+  files: File[],
+  signatureData: {
+    signature: string;
+    timestamp: number;
+    cloudName: string;
+    apiKey: string;
+    folder: string;
+  },
+  onProgress: (info: UploadProgressInfo) => void,
+  signal?: AbortSignal
+): Promise<{ url: string; publicId: string; type: 'photo' | 'video'; duration?: number; resolution?: string }[]> {
+  const { signature, timestamp, cloudName, apiKey, folder } = signatureData;
+  
+  const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+  const loadedPerFile = new Array(files.length).fill(0);
+  const startTime = Date.now();
+  
+  let overallLastLoaded = 0;
+  let overallLastTime = startTime;
+  
+  const results = [];
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const isVideo = file.type.startsWith('video/');
+    const resourceType = isVideo ? 'video' : 'image';
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', String(timestamp));
+    formData.append('signature', signature);
+    formData.append('folder', folder);
+    
+    const response = await axios.post(uploadUrl, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      signal,
+      onUploadProgress: (evt) => {
+        const loaded = evt.loaded ?? 0;
+        loadedPerFile[i] = loaded;
+        
+        const totalLoaded = loadedPerFile.reduce((sum, val) => sum + val, 0);
+        const percent = Math.min(99, Math.round((totalLoaded / totalBytes) * 100));
+        
+        const now = Date.now();
+        const timeDelta = (now - overallLastTime) / 1000;
+        const bytesDelta = totalLoaded - overallLastLoaded;
+        const speedBps = timeDelta > 0.1 ? bytesDelta / timeDelta : 0;
+        
+        overallLastLoaded = totalLoaded;
+        overallLastTime = now;
+        
+        const remaining = totalBytes - totalLoaded;
+        const etaSeconds = speedBps > 0 ? remaining / speedBps : Infinity;
+        
+        onProgress({
+          percent,
+          speedBps,
+          speedLabel: formatSpeed(speedBps),
+          etaSeconds,
+          etaLabel: formatEta(etaSeconds),
+          loaded: totalLoaded,
+          total: totalBytes,
+        });
+      }
+    });
+    
+    loadedPerFile[i] = file.size;
+    
+    const data = response.data;
+    results.push({
+      url: data.secure_url,
+      publicId: data.public_id,
+      type: (data.resource_type === 'video' ? 'video' : 'photo') as 'photo' | 'video',
+      duration: data.duration ? Math.round(data.duration) : undefined,
+      resolution: data.width && data.height ? `${data.width}x${data.height}` : undefined
+    });
+  }
+  
+  onProgress({
+    percent: 100,
+    speedBps: 0,
+    speedLabel: '0 B/s',
+    etaSeconds: 0,
+    etaLabel: '0s',
+    loaded: totalBytes,
+    total: totalBytes,
+  });
+  
+  return results;
 }

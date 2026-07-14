@@ -143,6 +143,9 @@ interface CoupleState {
   initSocketListeners: () => void;
 }
 
+// Module-level guard — prevents duplicate socket listeners on component remount
+let _socketInitialized = false;
+
 export const useCoupleStore = create<CoupleState>((set, get) => ({
   partner: null,
   categories: [],
@@ -252,8 +255,8 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
         memories: s.memories.map((m) => m._id === id ? { ...m, reactions: data } : m),
       }));
     } catch (err: any) {
-      console.error("Failed to react to memory. Make sure backend is deployed!", err);
-      alert("Reaction failed! Your backend is returning a 404 error because the new '/react' endpoint hasn't been deployed to Render yet. Please push your code to GitHub to deploy it!");
+      console.error('Failed to react to memory:', err);
+      toast.error('Reaction failed. Please try again.');
     }
   },
 
@@ -386,7 +389,7 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
       set(s => ({ letters: s.letters.map(l => l._id === id ? data : l) }));
     } catch (err) {
       console.error(err);
-      toast.error("Reaction failed! Your backend is returning a 404 error because the new '/react' endpoint hasn't been deployed to Render yet. Please push your code to GitHub to deploy it!");
+      toast.error('Reaction failed. Please try again.');
     }
   },
 
@@ -497,8 +500,11 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
   },
 
   initSocketListeners: () => {
+    // Prevent duplicate listener registration on re-mounts / React Strict Mode double-invoke
+    if (_socketInitialized) return;
     const socket = getSocket();
     if (!socket) return;
+    _socketInitialized = true;
 
     socket.on('memory:new', (memory: Memory) => {
       set((s) => {
@@ -612,14 +618,25 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     });
 
     socket.on('comment_deleted', ({ commentId, letterId }: { commentId: string, letterId: string }) => {
+      // Remove the comment from local state immediately for snappy UI,
+      // then refetch async outside of set() to avoid the set()-inside-set() anti-pattern
       set((s) => {
         const existing = s.letterComments[letterId] || [];
-        // We might also need to delete child replies locally or refetch
-        // For simplicity, refetching comments for that letter is safer
-        get().fetchLetterComments(letterId);
-        get().fetchLetters(); // Update counts
-        return s;
+        return {
+          letterComments: {
+            ...s.letterComments,
+            [letterId]: existing.filter(c => c._id !== commentId),
+          },
+          letters: s.letters.map(l =>
+            l._id === letterId ? { ...l, commentCount: Math.max(0, (l.commentCount || 1) - 1) } : l
+          ),
+        };
       });
+      // Sync with server in the background
+      setTimeout(() => {
+        get().fetchLetterComments(letterId);
+        get().fetchLetters();
+      }, 0);
     });
 
     socket.on('comment_reacted', ({ commentId, reactions, letterId }: { commentId: string, reactions: any, letterId: string }) => {

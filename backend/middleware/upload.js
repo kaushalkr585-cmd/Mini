@@ -20,7 +20,7 @@ const storage = new CloudinaryStorage({
     return {
       folder: 'nishy/memories',
       resource_type: isVideo ? 'video' : isAudio ? 'auto' : 'image',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'mp3', 'wav', 'm4a'],
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'webm', 'mp3', 'wav', 'm4a'],
       transformation: isVideo ? [] : [{ quality: 'auto', fetch_format: 'auto' }],
     };
   },

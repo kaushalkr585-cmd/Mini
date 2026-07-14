@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Heart, Plus, Edit2, Trash2 } from "lucide-react";
-import { MusicPlayer } from "@/components/MusicPlayer";
 import { useCoupleStore } from "@/store/coupleStore";
 import { useEffect, useState } from "react";
 import { UploadMilestoneModal } from "@/components/UploadMilestoneModal";
@@ -43,7 +42,7 @@ function TimelinePage() {
 
   return (
     <div className="relative min-h-screen pb-32 pt-28">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -69,36 +68,38 @@ function TimelinePage() {
 
         {/* Timeline */}
         <div className="relative">
-          {/* Center line */}
-          <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-primary/40 to-transparent" />
+          {/* Center line — only visible on md+ */}
+          <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-primary/40 to-transparent hidden md:block" />
 
           {milestones.map((m, i) => (
             <motion.div
               key={m._id}
-              initial={{ opacity: 0, x: i % 2 ? 60 : -60 }}
+              initial={{ opacity: 0, x: i % 2 ? 40 : -40 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className={`relative mb-16 flex w-full ${i % 2 ? "justify-end" : "justify-start"}`}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className={`relative mb-8 md:mb-16 flex w-full ${
+                i % 2 ? "md:justify-end" : "md:justify-start"
+              } justify-center`}
             >
-              {/* Dot */}
-              <div className="absolute left-1/2 top-7 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-primary shadow-glow ring-4 ring-background">
+              {/* Dot — only on md+ */}
+              <div className="absolute left-1/2 top-7 z-10 hidden md:flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full bg-primary shadow-glow ring-4 ring-background">
                 <div className="h-2 w-2 rounded-full bg-primary-foreground" />
               </div>
 
-              {/* Connector line */}
+              {/* Connector line — only on md+ */}
               <div
-                className={`absolute top-8.5 z-0 h-px w-[calc(50%-2.5rem)] bg-gradient-to-r ${
+                className={`absolute top-8.5 z-0 h-px w-[calc(50%-2.5rem)] bg-gradient-to-r hidden md:block ${
                   i % 2
                     ? "left-[calc(50%+2.5rem)] from-primary/60 to-transparent"
                     : "right-[calc(50%+2.5rem)] from-transparent to-primary/60"
                 }`}
               />
 
-              {/* Card */}
+              {/* Card — full width mobile, half-width desktop */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className={`group w-[calc(50%-3.5rem)] rounded-2xl glass-strong p-6 shadow-cinema bg-gradient-to-br ${getColor(i)}`}
+                className={`group w-full md:w-[calc(50%-3.5rem)] rounded-2xl glass-strong p-5 sm:p-6 shadow-cinema bg-gradient-to-br ${getColor(i)}`}
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -169,7 +170,6 @@ function TimelinePage() {
           )}
         </div>
       </div>
-      <MusicPlayer />
       <UploadMilestoneModal 
         isOpen={isModalOpen} 
         onClose={() => { setIsModalOpen(false); setEditingMilestone(null); }} 
