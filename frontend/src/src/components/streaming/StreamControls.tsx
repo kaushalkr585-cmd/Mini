@@ -9,6 +9,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { StreamResolution } from '@/hooks/useScreenShare';
 
 interface StreamControlsProps {
   /** Whether the local user is the active streamer */
@@ -27,8 +28,12 @@ interface StreamControlsProps {
   volume: number;
   /** Whether the remote/local stream has an audio track */
   remoteHasAudio: boolean;
+  /** Currently selected resolution */
+  selectedResolution: StreamResolution;
+  onResolutionChange: (res: StreamResolution) => void;
   onStartStream: () => void;
   onStopStream: () => void;
+  onSwitchScreen: () => void;
   onToggleMute: () => void;
   onVolumeChange: (v: number) => void;
   onToggleFullscreen: () => void;
@@ -84,8 +89,11 @@ export function StreamControls({
   isStarting,
   volume,
   remoteHasAudio,
+  selectedResolution,
+  onResolutionChange,
   onStartStream,
   onStopStream,
+  onSwitchScreen,
   onToggleMute,
   onVolumeChange,
   onToggleFullscreen,
@@ -107,20 +115,55 @@ export function StreamControls({
     >
       {/* ── Start / Stop stream (left side) ── */}
       {iAmStreaming ? (
-        <ControlButton
-          onClick={onStopStream}
-          icon={<MonitorOff className="h-4 w-4" />}
-          label="Stop Streaming"
-          variant="danger"
-        />
+        <div className="flex items-center gap-2">
+          <ControlButton
+            onClick={onStopStream}
+            icon={<MonitorOff className="h-4 w-4" />}
+            label="Stop Streaming"
+            variant="danger"
+          />
+          <ControlButton
+            onClick={onSwitchScreen}
+            disabled={isStarting}
+            icon={<Monitor className="h-4 w-4" />}
+            label={isStarting ? 'Switching…' : 'Switch Screen'}
+            variant="default"
+          />
+          <select
+            value={selectedResolution}
+            onChange={(e) => onResolutionChange(e.target.value as StreamResolution)}
+            className="bg-transparent border border-border/30 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer appearance-none"
+            style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+            title="Stream Resolution"
+          >
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+            <option value="480p">480p</option>
+            <option value="360p">360p</option>
+          </select>
+        </div>
       ) : !streamActive ? (
-        <ControlButton
-          onClick={onStartStream}
-          disabled={isStarting}
-          icon={<Monitor className="h-4 w-4" />}
-          label={isStarting ? 'Starting…' : 'Start Streaming'}
-          variant="primary"
-        />
+        <div className="flex items-center gap-2">
+          <ControlButton
+            onClick={onStartStream}
+            disabled={isStarting}
+            icon={<Monitor className="h-4 w-4" />}
+            label={isStarting ? 'Starting…' : 'Start Streaming'}
+            variant="primary"
+          />
+          <select
+            value={selectedResolution}
+            onChange={(e) => onResolutionChange(e.target.value as StreamResolution)}
+            className="bg-transparent border border-border/30 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer appearance-none"
+            style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+            title="Stream Resolution"
+          >
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+            <option value="480p">480p</option>
+            <option value="360p">360p</option>
+          </select>
+        </div>
       ) : null}
 
       {/* ── Volume / Mute — visible for EVERYONE when stream is active ── */}

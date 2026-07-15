@@ -190,8 +190,14 @@ export function useWebRTC(options: UseWebRTCOptions) {
         if (!params.encodings) {
           params.encodings = [{}];
         }
-        params.encodings[0].maxBitrate = 2500000; // 2.5 Mbps
+        params.encodings[0].maxBitrate = 5000000; // 5 Mbps for high quality 1080p without artifacts
         params.encodings[0].maxFramerate = 30;
+        
+        // Prioritize framerate over resolution if network drops, minimizing lag
+        if ('degradationPreference' in params) {
+          params.degradationPreference = 'maintain-framerate';
+        }
+
         try {
           sender.setParameters(params);
         } catch (e) {
@@ -201,6 +207,55 @@ export function useWebRTC(options: UseWebRTCOptions) {
     });
     if (import.meta.env.DEV) {
       console.debug('[WebRTC] Local tracks added:', stream.getTracks().length);
+    }
+  }, []);
+
+  // ── Replace local tracks dynamically (e.g. switching screens) ───────────
+  const replaceLocalStream = useCallback(async (newStream: MediaStream) => {
+    const pc = pcRef.current;
+    if (!pc) return;
+
+    const senders = pc.getSenders();
+    
+    // Create an array of replaceTrack promises
+    const replacePromises = newStream.getTracks().map(async (track) => {
+      if (track.kind === 'video') {
+        track.contentHint = 'motion';
+      }
+      
+      const sender = senders.find((s) => s.track?.kind === track.kind);
+      if (sender) {
+        await sender.replaceTrack(track);
+        
+        if (track.kind === 'video') {
+          const params = sender.getParameters();
+          if (!params.encodings) {
+            params.encodings = [{}];
+          }
+          params.encodings[0].maxBitrate = 5000000; // 5 Mbps
+          params.encodings[0].maxFramerate = 30;
+          
+          if ('degradationPreference' in params) {
+            params.degradationPreference = 'maintain-framerate';
+          }
+
+          try {
+            sender.setParameters(params);
+          } catch (e) {
+            console.warn('[WebRTC] Could not set sender parameters on replace:', e);
+          }
+        }
+      } else {
+        // If there wasn't a sender for this kind of track, we add it.
+        // However, this might require renegotiation, which we want to avoid if possible.
+        // For screen sharing, we usually swap video for video, and audio for audio.
+        pc.addTrack(track, newStream);
+      }
+    });
+
+    await Promise.all(replacePromises);
+    if (import.meta.env.DEV) {
+      console.debug('[WebRTC] Local tracks replaced:', newStream.getTracks().length);
     }
   }, []);
 
@@ -371,6 +426,7 @@ export function useWebRTC(options: UseWebRTCOptions) {
     pcRef,
     createPeerConnection,
     addLocalStream,
+    replaceLocalStream,
     createOffer,
     handleOffer,
     handleAnswer,

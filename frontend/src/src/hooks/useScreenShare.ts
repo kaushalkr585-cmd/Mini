@@ -6,6 +6,15 @@ export type ScreenShareError =
   | 'aborted'
   | 'unknown';
 
+export type StreamResolution = '1080p' | '720p' | '480p' | '360p';
+
+export const RESOLUTION_MAP: Record<StreamResolution, { width: number; height: number }> = {
+  '1080p': { width: 1920, height: 1080 },
+  '720p': { width: 1280, height: 720 },
+  '480p': { width: 854, height: 480 },
+  '360p': { width: 640, height: 360 },
+};
+
 export interface ScreenShareState {
   isSharing: boolean;
   hasAudio: boolean;
@@ -42,7 +51,7 @@ export function useScreenShare(options: UseScreenShareOptions) {
   });
 
   // ── Start screen capture ────────────────────────────────────────────────
-  const startScreenShare = useCallback(async (): Promise<MediaStream | null> => {
+  const startScreenShare = useCallback(async (resolution: StreamResolution = '1080p'): Promise<MediaStream | null> => {
     // Clear any previous error
     setState((s) => ({ ...s, error: null, errorMessage: null }));
 
@@ -66,12 +75,14 @@ export function useScreenShare(options: UseScreenShareOptions) {
       // may be unavailable depending on OS and browser.
       // Chrome on Windows/Mac supports system/tab audio.
       // Firefox and Safari have more limited audio capture.
+      const res = RESOLUTION_MAP[resolution];
+
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           // Balanced defaults — browser may override or ignore these hints
           frameRate: { ideal: 30, max: 60 },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: res.width, max: res.width },
+          height: { ideal: res.height, max: res.height },
         },
         audio: {
           echoCancellation: false,
@@ -104,6 +115,14 @@ export function useScreenShare(options: UseScreenShareOptions) {
         };
       });
 
+      // Stop old stream tracks if this is a seamless switch
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => {
+          t.onended = null;
+          t.stop();
+        });
+      }
+
       localStreamRef.current = stream;
 
       setState({
@@ -132,11 +151,21 @@ export function useScreenShare(options: UseScreenShareOptions) {
         }
       }
 
-      // Only surface error state for real errors (not user-cancelled picker)
-      if (errorType !== 'aborted') {
-        setState({ isSharing: false, hasAudio: false, error: errorType, errorMessage });
+      // If we are already sharing, and the user cancels a "switch" operation,
+      // we shouldn't kill the existing stream state.
+      const currentlySharing = !!localStreamRef.current;
+
+      if (!currentlySharing) {
+        if (errorType !== 'aborted') {
+          setState({ isSharing: false, hasAudio: false, error: errorType, errorMessage });
+        } else {
+          setState((s) => ({ ...s, isSharing: false }));
+        }
       } else {
-        setState((s) => ({ ...s, isSharing: false }));
+        if (errorType !== 'aborted') {
+          // Just surface the error without killing the active share
+          setState((s) => ({ ...s, error: errorType, errorMessage }));
+        }
       }
 
       return null;

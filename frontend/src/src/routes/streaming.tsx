@@ -15,7 +15,7 @@ import { useCoupleStore } from '@/store/coupleStore';
 import { getSocket } from '@/lib/socket';
 
 import { useWebRTC, type WebRTCConnectionState } from '@/hooks/useWebRTC';
-import { useScreenShare } from '@/hooks/useScreenShare';
+import { useScreenShare, type StreamResolution } from '@/hooks/useScreenShare';
 import { useStreamConnection } from '@/hooks/useStreamConnection';
 
 import { StreamPlayer, type StreamPlayerHandle } from '@/components/streaming/StreamPlayer';
@@ -103,6 +103,7 @@ function StreamingPage() {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [resolution, setResolution] = useState<StreamResolution>('1080p');
 
   // 'local' sentinel means WE are streaming
   const iAmStreaming = streamState.active && streamState.streamerId === 'local';
@@ -296,7 +297,7 @@ function StreamingPage() {
     setConnectionError(null);
 
     try {
-      const stream = await screenShare.startScreenShare();
+      const stream = await screenShare.startScreenShare(resolution);
       if (!stream) {
         // User cancelled picker or permission denied — error state already set
         setIsStarting(false);
@@ -338,7 +339,47 @@ function StreamingPage() {
     } finally {
       setIsStarting(false);
     }
-  }, [isStarting, iAmStreaming, screenShare, webrtc, streamConn, user]);
+  }, [isStarting, iAmStreaming, screenShare, webrtc, streamConn, user, resolution]);
+
+  // ── Switch streaming screen ─────────────────────────────────────────────
+  const handleSwitchScreen = useCallback(async () => {
+    if (isStarting || !iAmStreaming) return;
+    setIsStarting(true);
+    setConnectionError(null);
+
+    try {
+      // Calling startScreenShare with an active stream seamlessly gets a new one
+      const newStream = await screenShare.startScreenShare(resolution);
+      if (!newStream) {
+        setIsStarting(false);
+        return;
+      }
+
+      const hasAudio = newStream.getAudioTracks().length > 0;
+
+      // Update stream state
+      setStreamState((prev) => ({
+        ...prev,
+        hasAudio,
+      }));
+
+      // Broadcast potential audio availability change
+      streamConn.signalStreamStarted(hasAudio);
+
+      // Update local preview
+      playerRef.current?.setLocalStream(newStream);
+
+      // Replace WebRTC sender tracks without renegotiation
+      await webrtc.replaceLocalStream(newStream);
+
+      toast.success('Screen switched seamlessly!', { icon: '📺' });
+    } catch (err) {
+      console.error('[Streaming] Switch stream error:', err);
+      toast.error('Failed to switch screen.');
+    } finally {
+      setIsStarting(false);
+    }
+  }, [isStarting, iAmStreaming, screenShare, webrtc, streamConn, resolution]);
 
   // ── Stop streaming ────────────────────────────────────────────────────
   const handleStopStream = useCallback(() => {
@@ -495,8 +536,11 @@ function StreamingPage() {
                 isStarting={isStarting}
                 volume={volume}
                 remoteHasAudio={streamState.hasAudio}
+                selectedResolution={resolution}
+                onResolutionChange={(res) => setResolution(res)}
                 onStartStream={handleStartStream}
                 onStopStream={handleStopStream}
+                onSwitchScreen={handleSwitchScreen}
                 onToggleMute={() => setIsMuted((m) => !m)}
                 onVolumeChange={(v) => setVolume(v)}
                 onToggleFullscreen={handleToggleFullscreen}
