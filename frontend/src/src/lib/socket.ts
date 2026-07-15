@@ -1,6 +1,14 @@
 import { io, Socket } from 'socket.io-client';
 
-const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const getSocketURL = () => {
+  const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000';
+  }
+  return envUrl || 'http://localhost:5000';
+};
+
+const envUrl = getSocketURL();
 const URL = envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl;
 
 let socket: Socket | null = null;

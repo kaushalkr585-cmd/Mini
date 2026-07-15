@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { Heart, Moon, Sun, Search, LogIn, Menu, X, Shield, LogOut } from "lucide-react";
+import { Heart, Moon, Sun, Search, LogIn, Menu, X, Shield, LogOut, Monitor } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuthStore } from "@/store/authStore";
 import { useCoupleStore } from "@/store/coupleStore";
@@ -14,6 +14,7 @@ const links = [
   { to: "/letters", label: "Letters" },
   { to: "/music", label: "Music" },
   { to: "/chat", label: "Chat" },
+  { to: "/streaming", label: "Watch", icon: Monitor },
 ];
 
 export function Navbar() {
@@ -56,7 +57,10 @@ export function Navbar() {
               >
                 {({ isActive }) => (
                   <>
-                    {l.label}
+                    <span className="flex items-center gap-1.5">
+                      {l.icon && <l.icon className="h-3.5 w-3.5" />}
+                      {l.label}
+                    </span>
                     {isActive && (
                       deviceCapability.enableLayoutAnimation ? (
                         <motion.div
@@ -178,9 +182,10 @@ export function Navbar() {
                     key={l.to}
                     to={l.to}
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-primary/10 hover:text-foreground transition"
+                    className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-primary/10 hover:text-foreground transition flex items-center gap-2"
                     activeProps={{ className: "bg-primary/15 text-foreground" }}
                   >
+                    {l.icon && <l.icon className="h-4 w-4" />}
                     {l.label}
                   </Link>
                 ))}

@@ -728,3 +728,60 @@
   content-visibility: auto;
   contain-intrinsic-size: 0 400px; /* prevent layout shift while offscreen */
 }
+
+/* ── Streaming — volume slider ─────────────────────────────────── */
+.video-volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    oklch(0.72 0.32 350) 0%,
+    oklch(0.72 0.32 350) calc(var(--val, 80) * 1%),
+    oklch(0.3 0.05 350 / 0.4) calc(var(--val, 80) * 1%),
+    oklch(0.3 0.05 350 / 0.4) 100%
+  );
+  transition: background 0.1s;
+}
+
+.video-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: oklch(0.72 0.32 350);
+  box-shadow: 0 0 6px oklch(0.72 0.32 350 / 0.6);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.video-volume-slider::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border: none;
+  border-radius: 50%;
+  background: oklch(0.72 0.32 350);
+  box-shadow: 0 0 6px oklch(0.72 0.32 350 / 0.6);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.video-volume-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+  box-shadow: 0 0 12px oklch(0.72 0.32 350 / 0.8);
+}
+
+.video-volume-slider:hover::-moz-range-thumb {
+  transform: scale(1.25);
+  box-shadow: 0 0 12px oklch(0.72 0.32 350 / 0.8);
+}
+
+.video-volume-slider:focus-visible {
+  outline: 2px solid oklch(0.72 0.32 350 / 0.5);
+  outline-offset: 3px;
+  border-radius: 9999px;
+}

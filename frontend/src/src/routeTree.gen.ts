@@ -19,6 +19,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as StreamingRouteImport } from './routes/streaming'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -80,6 +81,12 @@ const AdminRoute = AdminRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 
+const StreamingRoute = StreamingRouteImport.update({
+  id: '/streaming',
+  path: '/streaming',
+  getParentRoute: () => rootRouteImport,
+} as any)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/memories': typeof MemoriesRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AdminRoute
+  '/streaming': typeof StreamingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,6 +111,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AdminRoute
+  '/streaming': typeof StreamingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,13 +125,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AdminRoute
+  '/streaming': typeof StreamingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/memories' | '/timeline' | '/letters' | '/music' | '/chat' | '/search' | '/login' | '/signup' | '/admin'
+  fullPaths: '/' | '/memories' | '/timeline' | '/letters' | '/music' | '/chat' | '/search' | '/login' | '/signup' | '/admin' | '/streaming'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/memories' | '/timeline' | '/letters' | '/music' | '/chat' | '/search' | '/login' | '/signup' | '/admin'
-  id: '__root__' | '/' | '/memories' | '/timeline' | '/letters' | '/music' | '/chat' | '/search' | '/login' | '/signup' | '/admin'
+  to: '/' | '/memories' | '/timeline' | '/letters' | '/music' | '/chat' | '/search' | '/login' | '/signup' | '/admin' | '/streaming'
+  id: '__root__' | '/' | '/memories' | '/timeline' | '/letters' | '/music' | '/chat' | '/search' | '/login' | '/signup' | '/admin' | '/streaming'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -136,6 +146,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   AdminRoute: typeof AdminRoute
+  StreamingRoute: typeof StreamingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -210,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/streaming': {
+      id: '/streaming'
+      path: '/streaming'
+      fullPath: '/streaming'
+      preLoaderRoute: typeof StreamingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -224,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   AdminRoute: AdminRoute,
+  StreamingRoute: StreamingRoute,
 }
 
 export const routeTree = rootRouteImport
