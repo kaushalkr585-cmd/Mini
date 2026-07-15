@@ -79,10 +79,12 @@ export function useScreenShare(options: UseScreenShareOptions) {
 
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          // Balanced defaults — browser may override or ignore these hints
-          frameRate: { ideal: 30, max: 60 },
-          width: { ideal: res.width, max: res.width },
-          height: { ideal: res.height, max: res.height },
+          // Allow capture up to 60fps for buttery smooth motion.
+          // We omit 'max' width/height to prevent aggressive premature browser downscaling;
+          // WebRTC's internal congestion control will handle downscaling dynamically if needed.
+          frameRate: { ideal: 60, max: 60 },
+          width: { ideal: res.width },
+          height: { ideal: res.height },
         },
         audio: {
           echoCancellation: false,

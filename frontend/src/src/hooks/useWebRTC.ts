@@ -180,9 +180,7 @@ export function useWebRTC(options: UseWebRTCOptions) {
     const pc = pcRef.current;
     if (!pc) return;
     stream.getTracks().forEach((track) => {
-      if (track.kind === 'video') {
-        track.contentHint = 'motion';
-      }
+      // Remove contentHint forcing; let the browser automatically infer the best hint
       const sender = pc.addTrack(track, stream);
 
       if (track.kind === 'video') {
@@ -190,13 +188,8 @@ export function useWebRTC(options: UseWebRTCOptions) {
         if (!params.encodings) {
           params.encodings = [{}];
         }
-        params.encodings[0].maxBitrate = 5000000; // 5 Mbps for high quality 1080p without artifacts
-        params.encodings[0].maxFramerate = 30;
-        
-        // Prioritize framerate over resolution if network drops, minimizing lag
-        if ('degradationPreference' in params) {
-          params.degradationPreference = 'maintain-framerate';
-        }
+        // Drastically increase maxBitrate to 15 Mbps to prevent compression artifacts and resolution drops
+        params.encodings[0].maxBitrate = 15000000; 
 
         try {
           sender.setParameters(params);
@@ -219,10 +212,6 @@ export function useWebRTC(options: UseWebRTCOptions) {
     
     // Create an array of replaceTrack promises
     const replacePromises = newStream.getTracks().map(async (track) => {
-      if (track.kind === 'video') {
-        track.contentHint = 'motion';
-      }
-      
       const sender = senders.find((s) => s.track?.kind === track.kind);
       if (sender) {
         await sender.replaceTrack(track);
@@ -232,13 +221,8 @@ export function useWebRTC(options: UseWebRTCOptions) {
           if (!params.encodings) {
             params.encodings = [{}];
           }
-          params.encodings[0].maxBitrate = 5000000; // 5 Mbps
-          params.encodings[0].maxFramerate = 30;
+          params.encodings[0].maxBitrate = 15000000; // 15 Mbps
           
-          if ('degradationPreference' in params) {
-            params.degradationPreference = 'maintain-framerate';
-          }
-
           try {
             sender.setParameters(params);
           } catch (e) {
