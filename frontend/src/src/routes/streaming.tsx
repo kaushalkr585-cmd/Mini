@@ -447,7 +447,7 @@ function StreamingPage() {
         {/* ── Main layout: Video column + Sidebar ── */}
         <div
           ref={containerRef}
-          className={`flex flex-col transition-all duration-500 ${
+          className={`flex flex-col transition-all duration-500 streaming-container ${
             isTheaterMode ? 'gap-0' : 'lg:flex-row gap-6'
           }`}
         >

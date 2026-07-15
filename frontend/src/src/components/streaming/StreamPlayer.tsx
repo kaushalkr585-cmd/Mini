@@ -142,10 +142,16 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
 
     // Viewport sizing
     const viewportClass = isFullscreen
-      ? 'fixed inset-0 z-[100] bg-black'
+      ? `fixed inset-0 z-[100] transition-colors duration-300 ${
+          isActive ? 'bg-black' : 'bg-muted/60 border border-border/30 shadow-inner rounded-2xl overflow-hidden'
+        }`
       : isTheaterMode
-      ? 'w-full aspect-video max-h-[70vh] rounded-2xl overflow-hidden bg-black'
-      : 'w-full aspect-video rounded-2xl overflow-hidden bg-black';
+      ? `w-full aspect-video max-h-[70vh] rounded-2xl overflow-hidden transition-colors duration-300 ${
+          isActive ? 'bg-black' : 'bg-muted/60 border border-border/30 shadow-inner'
+        }`
+      : `w-full aspect-video rounded-2xl overflow-hidden transition-colors duration-300 ${
+          isActive ? 'bg-black' : 'bg-muted/60 border border-border/30 shadow-inner'
+        }`;
 
     return (
       <div className={`relative ${viewportClass} group`}>
