@@ -66,7 +66,7 @@ function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@nishy.love"
+                  placeholder="you@mini.love"
                   required
                   className="w-full rounded-xl glass py-3.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/60 transition-all"
                 />
