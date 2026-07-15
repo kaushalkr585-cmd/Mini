@@ -269,8 +269,6 @@ function StreamingPage() {
   }, [isMuted, streamState.hasAudio]);
 
   // ── Fullscreen API ────────────────────────────────────────────────────
-  const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const onFSChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', onFSChange);
@@ -280,7 +278,9 @@ function StreamingPage() {
   const handleToggleFullscreen = useCallback(async () => {
     try {
       if (!document.fullscreenElement) {
-        await containerRef.current?.requestFullscreen();
+        if (playerRef.current && 'requestFullscreen' in playerRef.current) {
+          await playerRef.current.requestFullscreen();
+        }
       } else {
         await document.exitFullscreen();
       }
@@ -446,7 +446,6 @@ function StreamingPage() {
 
         {/* ── Main layout: Video column + Sidebar ── */}
         <div
-          ref={containerRef}
           className={`flex flex-col transition-all duration-500 streaming-container ${
             isTheaterMode ? 'gap-0' : 'lg:flex-row gap-6'
           }`}

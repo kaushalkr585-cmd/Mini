@@ -180,7 +180,24 @@ export function useWebRTC(options: UseWebRTCOptions) {
     const pc = pcRef.current;
     if (!pc) return;
     stream.getTracks().forEach((track) => {
-      pc.addTrack(track, stream);
+      if (track.kind === 'video') {
+        track.contentHint = 'motion';
+      }
+      const sender = pc.addTrack(track, stream);
+
+      if (track.kind === 'video') {
+        const params = sender.getParameters();
+        if (!params.encodings) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = 2500000; // 2.5 Mbps
+        params.encodings[0].maxFramerate = 30;
+        try {
+          sender.setParameters(params);
+        } catch (e) {
+          console.warn('[WebRTC] Could not set sender parameters:', e);
+        }
+      }
     });
     if (import.meta.env.DEV) {
       console.debug('[WebRTC] Local tracks added:', stream.getTracks().length);

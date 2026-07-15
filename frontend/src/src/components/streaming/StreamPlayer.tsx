@@ -13,6 +13,8 @@ export interface StreamPlayerHandle {
   setMuted: (muted: boolean) => void;
   /** Attempt to resume playback (e.g., after autoplay was blocked) */
   resumePlayback: () => void;
+  /** Request native fullscreen on the player wrapper */
+  requestFullscreen: () => Promise<void>;
 }
 
 interface StreamPlayerProps {
@@ -44,9 +46,12 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
     ref,
   ) {
     const mainVideoRef = useRef<HTMLVideoElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
 
     // Track whether we have a stream attached (drives CSS opacity)
     const hasStreamRef = useRef(false);
+    // Track whether the current stream is local (to enforce mute and prevent feedback loops)
+    const isLocalRef = useRef(false);
 
     const attemptPlay = useCallback(
       async (video: HTMLVideoElement, label: string) => {
@@ -75,7 +80,11 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
           const video = mainVideoRef.current;
           if (!video) return;
 
+          isLocalRef.current = false;
           hasStreamRef.current = !!stream;
+
+          // Prevent rapid double assignment of the same stream (e.g., from multiple ontrack events)
+          if (video.srcObject === stream && stream !== null) return;
 
           if (stream) {
             video.srcObject = stream;
@@ -91,14 +100,17 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
             });
           } else {
             video.srcObject = null;
-            hasStreamRef.current = false;
           }
         },
 
         setLocalStream: (stream: MediaStream | null) => {
           const video = mainVideoRef.current;
           if (!video) return;
+
+          isLocalRef.current = true;
           hasStreamRef.current = !!stream;
+
+          if (video.srcObject === stream && stream !== null) return;
 
           if (stream) {
             video.srcObject = stream;
@@ -106,7 +118,6 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
             attemptPlay(video, 'local preview');
           } else {
             video.srcObject = null;
-            hasStreamRef.current = false;
           }
         },
 
@@ -118,15 +129,22 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
 
         setMuted: (muted: boolean) => {
           if (mainVideoRef.current) {
-            mainVideoRef.current.muted = muted;
+            // CRITICAL: Force muted if it's a local stream to prevent massive echo/feedback loops
+            mainVideoRef.current.muted = isLocalRef.current ? true : muted;
           }
         },
 
         resumePlayback: () => {
           const video = mainVideoRef.current;
           if (!video || !video.srcObject) return;
-          video.muted = false;
+          video.muted = isLocalRef.current ? true : false;
           attemptPlay(video, 'remote (resume)');
+        },
+
+        requestFullscreen: async () => {
+          if (wrapperRef.current) {
+            await wrapperRef.current.requestFullscreen();
+          }
         },
       }),
       [attemptPlay, remoteHasAudio],
@@ -154,7 +172,7 @@ export const StreamPlayer = forwardRef<StreamPlayerHandle, StreamPlayerProps>(
         }`;
 
     return (
-      <div className={`relative ${viewportClass} group`}>
+      <div ref={wrapperRef} className={`relative ${viewportClass} group`}>
 
         {/* ── Main stream video (active for both streamer and viewer) ── */}
         <video

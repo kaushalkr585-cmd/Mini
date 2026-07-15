@@ -73,7 +73,11 @@ export function useScreenShare(options: UseScreenShareOptions) {
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
-        audio: true, // Request audio — browser will indicate if unavailable
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
       });
 
       // Detect whether an audio track was actually captured
