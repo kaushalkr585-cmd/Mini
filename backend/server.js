@@ -47,6 +47,8 @@ app.get('/', (_req, res) => res.send('MINI Backend 💖 Running'));
 
 // ── Socket.io Hub ─────────────────────────────────────────
 const onlineUsers = new Map(); // socketId → { userId, name }
+const activeCalls  = new Map(); // socketId → partnerSocketId (both directions stored)
+
 
 // ── Streaming Room State ───────────────────────────────────
 // Single private room for the couple. Tracks who is currently streaming.
@@ -85,6 +87,121 @@ io.on('connection', (socket) => {
   // Activity broadcast (page changes, etc.)
   socket.on('activity:update', (data) => {
     socket.broadcast.emit('activity:update', data);
+  });
+
+  // ── Voice / Video Call Signaling ───────────────────────────────
+  // Simple 2-person app: find the other connected socket and relay directly.
+
+  /**
+   * call:invite — Caller initiates a call to the partner.
+   * Payload: { callType: 'voice' | 'video' }
+   */
+  socket.on('call:invite', ({ callType }) => {
+    const caller = onlineUsers.get(socket.id);
+    if (!caller) return;
+
+    // Find the partner socket (the other online user)
+    let partnerSocketId = null;
+    for (const [sid, user] of onlineUsers) {
+      if (sid !== socket.id) { partnerSocketId = sid; break; }
+    }
+    if (!partnerSocketId) {
+      socket.emit('call:no-answer', { reason: 'Partner is offline' });
+      return;
+    }
+
+    // Check if partner is already in a call
+    if (activeCalls.has(partnerSocketId) || activeCalls.has(socket.id)) {
+      socket.emit('call:busy');
+      return;
+    }
+
+    io.to(partnerSocketId).emit('call:invite', {
+      from: socket.id,
+      callerName: caller.name,
+      callType,
+    });
+    console.log(`📞 ${caller.name} calling partner (${callType})`);
+  });
+
+  /**
+   * call:accept — Callee accepts the incoming call.
+   * Payload: { to: callerSocketId }
+   */
+  socket.on('call:accept', ({ to }) => {
+    const callee = onlineUsers.get(socket.id);
+    if (!callee) return;
+
+    activeCalls.set(socket.id, to);
+    activeCalls.set(to, socket.id);
+
+    const callerSocket = io.sockets.sockets.get(to);
+    if (callerSocket) {
+      callerSocket.emit('call:accepted', { from: socket.id });
+    }
+    console.log(`✅ Call accepted by ${callee.name}`);
+  });
+
+  /**
+   * call:decline — Callee declines the incoming call.
+   * Payload: { to: callerSocketId }
+   */
+  socket.on('call:decline', ({ to }) => {
+    const callee = onlineUsers.get(socket.id);
+    const callerSocket = io.sockets.sockets.get(to);
+    if (callerSocket) {
+      callerSocket.emit('call:declined', { from: socket.id });
+    }
+    console.log(`❌ Call declined by ${callee?.name}`);
+  });
+
+  /**
+   * call:end — Either party ends the active call.
+   * Payload: { to: partnerSocketId }
+   */
+  socket.on('call:end', ({ to }) => {
+    activeCalls.delete(socket.id);
+    activeCalls.delete(to);
+
+    const endingUser = onlineUsers.get(socket.id);
+    const partnerSocket = io.sockets.sockets.get(to);
+    if (partnerSocket) {
+      partnerSocket.emit('call:ended', { from: socket.id });
+    }
+    console.log(`📴 Call ended by ${endingUser?.name}`);
+  });
+
+  /**
+   * call:offer — Relay WebRTC SDP offer to the specific call partner.
+   * Payload: { offer: RTCSessionDescriptionInit, to: socketId }
+   */
+  socket.on('call:offer', ({ offer, to }) => {
+    const targetSocket = io.sockets.sockets.get(to);
+    if (targetSocket) {
+      targetSocket.emit('call:offer', { offer, from: socket.id });
+    }
+  });
+
+  /**
+   * call:answer — Relay WebRTC SDP answer back to the caller.
+   * Payload: { answer: RTCSessionDescriptionInit, to: socketId }
+   */
+  socket.on('call:answer', ({ answer, to }) => {
+    const targetSocket = io.sockets.sockets.get(to);
+    if (targetSocket) {
+      targetSocket.emit('call:answer', { answer, from: socket.id });
+    }
+  });
+
+  /**
+   * call:ice-candidate — Relay ICE candidate to the call partner.
+   * Payload: { candidate: RTCIceCandidateInit, to: socketId }
+   */
+  socket.on('call:ice-candidate', ({ candidate, to }) => {
+    const targetSocket = io.sockets.sockets.get(to);
+    if (targetSocket) {
+      targetSocket.emit('call:ice-candidate', { candidate, from: socket.id });
+    }
   });
 
   // ── Streaming Signaling ────────────────────────────────────
@@ -260,6 +377,17 @@ io.on('connection', (socket) => {
       io.emit('user:offline', { userId: user.userId });
       io.emit('users:online', [...onlineUsers.values()]);
       console.log(`🔴 ${user.name} went offline`);
+    }
+
+    // If this socket was in an active call, notify the partner
+    if (activeCalls.has(socket.id)) {
+      const partnerSocketId = activeCalls.get(socket.id);
+      activeCalls.delete(socket.id);
+      activeCalls.delete(partnerSocketId);
+      const partnerSocket = io.sockets.sockets.get(partnerSocketId);
+      if (partnerSocket) {
+        partnerSocket.emit('call:ended', { from: socket.id, reason: 'disconnected' });
+      }
     }
 
     // Clean up streaming room if the disconnected socket was in it

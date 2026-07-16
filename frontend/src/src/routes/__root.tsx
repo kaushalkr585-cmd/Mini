@@ -7,7 +7,7 @@ import {
 
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { CursorGlow } from "@/components/CursorGlow";
+
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useCoupleStore } from "@/store/coupleStore";
@@ -71,7 +71,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AmbientBackground />
-        <CursorGlow />
+
         <Navbar />
         <Outlet />
         <MusicPlayer />

@@ -454,7 +454,10 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
 
   sendMessage: async (payload) => {
     try {
-      const { data } = await api.post('/messages', payload);
+      const isFormData = payload instanceof FormData;
+      const { data } = await api.post('/messages', payload, {
+        headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+      });
       set((s) => {
         if (s.messages.some(m => m._id === data._id)) return s;
         return { messages: [...s.messages, data] };
@@ -689,9 +692,11 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
     });
 
     socket.on('user:typing', (data) => {
+      // Clear any existing auto-clear timer before setting a new one
+      clearTimeout(_typingTimer);
       set({ typingUser: data.isTyping ? { name: 'Partner' } : null });
       if (data.isTyping) {
-        setTimeout(() => set({ typingUser: null }), 3000);
+        _typingTimer = window.setTimeout(() => set({ typingUser: null }), 3000);
       }
     });
 
